@@ -39,9 +39,11 @@ class instruction {
     public $args;
 
     public $elements;
+    private $header;
 
     public function __construct() {
         $this->line_cnt = 0;
+        $this->header = false;
     }
 
     /* Odstrani komentare z elements array
@@ -64,22 +66,30 @@ class instruction {
     public function next_line() {
         $this->line_cnt++;
         $line = fgets(STDIN);
-        $header = false;
 
-        while($header == false) {
-            if($line == false && $this->line_cnt == 1) {
-                fprintf(STDERR, "Zadan prazdny soubor.\n");
-                exit(21);
+        while($this->header == false) {
+            if($line == false) {
+              fprintf(STDERR, "Chybejici nebo chybna hlavicka.\n");
+              exit(21);
             }
 
             //rozdeleni nacteneho radku do pole stringu podle whitespace
             $line = trim($line);
             $this->elements= preg_split('/\s+/', $line);
-            $this->destroy_comments();/*
-            while(empty($this->elements)) {
-              if(empty($line))
-            }*/
-            var_dump($this->elements);
+            $this->destroy_comments();
+
+            if(preg_match("/^.[iI][pP][pP][cC][oO][dD][eE]20/", $this->elements[0]) && sizeof($this->elements) == 1) {
+              $this->header = true;
+              break;
+            }
+            else if(empty($line)) {
+              $line = fgets(STDIN);
+              continue;
+            }
+            else {
+              fprintf(STDERR, "Chybejici nebo chybna hlavicka.\n");
+              exit(21);
+            }
         }
     }
 

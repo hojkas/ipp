@@ -1,5 +1,3 @@
-#comment
-
 .IPPcode20 #comment
 hello world
 shit
