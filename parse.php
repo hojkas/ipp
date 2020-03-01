@@ -35,12 +35,10 @@ function end_xml($xml) {
 //Trida na zpracovani instrukci
 class instruction {
     public $line_cnt;
-    public $name;
-    public $args;
     public $eof_reached;
-
-    public $elements;
+    private $elements;
     private $header;
+    private $name;
 
     public function __construct() {
         $this->line_cnt = 0;
@@ -116,6 +114,18 @@ class instruction {
         }
     }
 
+    /* Zkontroluje argumenty, aka položky 1 až n elements, a zpracuje do xml
+    * volano exklusivne jen z process_instruction
+    */
+    private process_arguments() {
+
+    }
+
+    public process_instruction() {
+
+
+      $this->process_arguments();
+    }
 
 }
 
