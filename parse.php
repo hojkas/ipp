@@ -34,15 +34,29 @@ function end_xml($xml) {
 
 //Trida na zpracovani instrukci
 class instruction {
-    private $line_cnt;
+    public $line_cnt;
     public $name;
     public $args;
 
-    private $line;
     public $elements;
 
     public function __construct() {
         $this->line_cnt = 0;
+    }
+
+    /* Odstrani komentare z elements array
+    */
+    private function destroy_comments() {
+      $found = false;
+      $index = 0;
+      foreach($this->elements as $word) {
+        if($word[0] == '#') {
+          $found = true;
+          break;
+        }
+        $index++;
+      }
+      if($found) array_splice($this->elements, $index);
     }
 
     /* Nacte dalsi radek ze stdout
@@ -50,19 +64,23 @@ class instruction {
     public function next_line() {
         $this->line_cnt++;
         $line = fgets(STDIN);
+        $header = false;
 
-        if(empty($line) && line_cnt == 1) {
-            fprintf(STDERR, "Zadan prazdny soubor.\n");
-            exit(21);
+        while($header == false) {
+            if($line == false && $this->line_cnt == 1) {
+                fprintf(STDERR, "Zadan prazdny soubor.\n");
+                exit(21);
+            }
+
+            //rozdeleni nacteneho radku do pole stringu podle whitespace
+            $line = trim($line);
+            $this->elements= preg_split('/\s+/', $line);
+            $this->destroy_comments();/*
+            while(empty($this->elements)) {
+              if(empty($line))
+            }*/
+            var_dump($this->elements);
         }
-
-
-
-        $elements= preg_split('/\s+/', $line);
-        $elements =
-
-        var_dump($elements);
-
     }
 
 
@@ -84,6 +102,7 @@ $xml->endAttribute();
 $xml->endElement();*/
 
 $i = new instruction;
+$i->next_line();
 $i->next_line();
 
 end_xml($xml);
