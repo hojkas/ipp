@@ -37,12 +37,14 @@ class instruction {
     public $line_cnt;
     public $name;
     public $args;
+    public $eof_reached;
 
     public $elements;
     private $header;
 
     public function __construct() {
         $this->line_cnt = 0;
+        $this->eof_reached = false;
         $this->header = false;
     }
 
@@ -62,12 +64,18 @@ class instruction {
     }
 
     /* Nacte dalsi radek ze stdout
+    * radek s hlavickou zahodi a nacita az dalsi
+    * ignoruje prazdne radky
+    * zahodi komentare
+    * vytvori $elements s polem stringu (osekane o bile znaky)
     */
     public function next_line() {
         $this->line_cnt++;
-        $line = fgets(STDIN);
 
+        //cyklus starajici se o kontrolu hlavicky a jeji zahozeni
         while($this->header == false) {
+            $line = fgets(STDIN);
+
             if($line == false) {
               fprintf(STDERR, "Chybejici nebo chybna hlavicka.\n");
               exit(21);
@@ -75,22 +83,38 @@ class instruction {
 
             //rozdeleni nacteneho radku do pole stringu podle whitespace
             $line = trim($line);
+            if(empty($line)) continue;
+
             $this->elements= preg_split('/\s+/', $line);
             $this->destroy_comments();
 
-            if(preg_match("/^.[iI][pP][pP][cC][oO][dD][eE]20/", $this->elements[0]) && sizeof($this->elements) == 1) {
+            if(sizeof($this->elements) == 0) continue;
+            else if(preg_match("/^.[iI][pP][pP][cC][oO][dD][eE]20/", $this->elements[0]) && sizeof($this->elements) == 1) {
               $this->header = true;
               break;
-            }
-            else if(empty($line)) {
-              $line = fgets(STDIN);
-              continue;
             }
             else {
               fprintf(STDERR, "Chybejici nebo chybna hlavicka.\n");
               exit(21);
             }
         }
+
+        //nacteni radku a zpracovani do $elements, while kvuli vyhozeni pripadnych prazdnych
+        while(true) {
+          $line = fgets(STDIN);
+          if($line == false) {
+            $this->eof_reached = true;
+            return;
+          }
+          //rozdeleni nacteneho radku do pole stringu podle whitespace
+          $line = trim($line);
+          if(empty($line)) continue;
+          $this->elements= preg_split('/\s+/', $line);
+          $this->destroy_comments();
+
+          if(sizeof($this->elements)) break;
+        }
+
     }
 
 
@@ -98,9 +122,6 @@ class instruction {
 
 check_args($argc, $argv);
 start_xml($xml);
-
-
-
 
 /*
 $xml->startElement('instruction');
@@ -113,7 +134,10 @@ $xml->endElement();*/
 
 $i = new instruction;
 $i->next_line();
-$i->next_line();
+while(! $i->eof_reached) {
+  var_dump($i->elements);
+  $i->next_line();
+}
 
 end_xml($xml);
 
