@@ -114,7 +114,6 @@ class instruction {
 
           if(sizeof($this->elements)) break;
         }
-
     }
 
 
