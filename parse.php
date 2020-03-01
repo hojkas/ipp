@@ -2,6 +2,12 @@
 
 $xml = new XMLWriter();
 
+$i_array = array("MOVE", "CREATEFRAME", "PUSHFRAME", "POPFRAME", "DEFVAR", "CALL",
+  "RETURN", "PUSHS", "POPS", "ADD", "SUB", "MUL", "IDIV", "LT", "GT", "EQ",
+  "AND", "OR", "NOT", "INT2CHAR", "STRI2INT", "READ", "WRITE", "CONCAT", "STRLEN",
+  "GETCHAR", "SETCHAR", "TYPE", "LABEL", "JUMP", "JUMPIFEQ", "JUMPIFNEW", "EXIT",
+  "DPRINT", "BREAK");
+
 function check_args($argc, $argv) {
     /*$opt = getopt(NULL, array("help"));
     var_dump($opt);*/
@@ -74,7 +80,7 @@ class instruction {
         while($this->header == false) {
             $line = fgets(STDIN);
 
-            if($line == false) {
+            if($line === false) {
               fprintf(STDERR, "Chybejici nebo chybna hlavicka.\n");
               exit(21);
             }
@@ -100,7 +106,7 @@ class instruction {
         //nacteni radku a zpracovani do $elements, while kvuli vyhozeni pripadnych prazdnych
         while(true) {
           $line = fgets(STDIN);
-          if($line == false) {
+          if($line === false) {
             $this->eof_reached = true;
             return;
           }
@@ -117,14 +123,33 @@ class instruction {
     /* Zkontroluje argumenty, aka položky 1 až n elements, a zpracuje do xml
     * volano exklusivne jen z process_instruction
     */
-    private process_arguments() {
+    private function process_arguments($key) {
 
+      return;
     }
 
-    public process_instruction() {
+    /* Zkontroluje nazev instrukce,
+    * vola kontrolu argumentu, generuje patricny xml kod
+    */
+    public function process_instruction() {
+      global $xml;
+      global $i_array;
 
+      //overi existenci operacniho kodu dane instrukce a ulozi klic
+      $this->elements[0] = strtoupper($this->elements[0]);
+      $key = array_search($this->elements[0], $i_array);
+      if($key === false) {
+        fprintf(STDERR, "Chybny nebo neznamy operacni kod: %s \n", $this->elements[0]);
+        exit(22);
+      }
 
-      $this->process_arguments();
+      $xml->startElement('instruction');
+      $xml->writeAttribute('order', $this->line_cnt);
+      $xml->writeAttribute('opcode', $this->elements[0]);
+
+      $this->process_arguments($key);
+
+      $xml->endElement();
     }
 
 }
@@ -132,19 +157,10 @@ class instruction {
 check_args($argc, $argv);
 start_xml($xml);
 
-/*
-$xml->startElement('instruction');
-$xml->text('yes');
-$xml->setindent(true);
-$xml->startAttribute('in');
-$xml->text('yes');
-$xml->endAttribute();
-$xml->endElement();*/
-
 $i = new instruction;
 $i->next_line();
-while(! $i->eof_reached) {
-  var_dump($i->elements);
+while($i->eof_reached === FALSE) {
+  $i->process_instruction();
   $i->next_line();
 }
 
