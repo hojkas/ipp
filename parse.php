@@ -2,11 +2,43 @@
 
 $xml = new XMLWriter();
 
-$i_array = array("MOVE", "CREATEFRAME", "PUSHFRAME", "POPFRAME", "DEFVAR", "CALL",
-  "RETURN", "PUSHS", "POPS", "ADD", "SUB", "MUL", "IDIV", "LT", "GT", "EQ",
-  "AND", "OR", "NOT", "INT2CHAR", "STRI2INT", "READ", "WRITE", "CONCAT", "STRLEN",
-  "GETCHAR", "SETCHAR", "TYPE", "LABEL", "JUMP", "JUMPIFEQ", "JUMPIFNEW", "EXIT",
-  "DPRINT", "BREAK");
+$i_array = array(
+  array("MOVE", "var", "symb"),
+  array("CREATEFRAME"),
+  array("PUSHFRAME"),
+  array("POPFRAME"),
+  array("DEFVAR", "var"),
+  array("CALL", "label"),
+  array("RETURN"),
+  array("PUSHS", "symb"),
+  array("POPS", "var"),
+  array("ADD", "var", "symb", "symb"),
+  array("SUB", "var", "symb", "symb"),
+  array("MUL", "var", "symb", "symb"),
+  array("IDIV", "var", "symb", "symb"),
+  array("LG", "var", "symb", "symb"),
+  array("GT", "var", "symb", "symb"),
+  array("EQ", "var", "symb", "symb"),
+  array("AND", "var", "symb", "symb"),
+  array("OR", "var", "symb", "symb"),
+  array("NOT", "var", "symb", "symb"),
+  array("INT2CHAR", "var", "symb"),
+  array("STRI2INT", "var", "symb", "symb"),
+  array("READ", "var", "type"),
+  array("WRITE", "symb"),
+  array("CONCAT", "var", "symb", "symb"),
+  array("STRLEN", "var", "symb"),
+  array("GETCHAR", "var", "symb", "symb"),
+  array("SETCHAR", "var", "symb", "symb"),
+  array("TYPE", "var", "symb"),
+  array("LABEL", "label"),
+  array("JUMP", "label"),
+  array("JUMPIFEQ", "label", "symb", "symb"),
+  array("JUMPIFNEQ", "label", "symb", "symb"),
+  array("EXIT", "symb"),
+  array("DPRINT", "symb"),
+  array("BREAK")
+);
 
 function check_args($argc, $argv) {
     /*$opt = getopt(NULL, array("help"));
@@ -120,12 +152,23 @@ class instruction {
         }
     }
 
+    private function check_symb($index) {
+
+    }
+
+    private function check_var($index) {
+
+    }
+
+    private function check_label($index) {
+
+    }
+
     /* Zkontroluje argumenty, aka položky 1 až n elements, a zpracuje do xml
     * volano exklusivne jen z process_instruction
     */
     private function process_arguments($key) {
 
-      return;
     }
 
     /* Zkontroluje nazev instrukce,
@@ -137,7 +180,7 @@ class instruction {
 
       //overi existenci operacniho kodu dane instrukce a ulozi klic
       $this->elements[0] = strtoupper($this->elements[0]);
-      $key = array_search($this->elements[0], $i_array);
+      $key = array_search($this->elements[0], array_column($i_array, '0'));
       if($key === false) {
         fprintf(STDERR, "Chybny nebo neznamy operacni kod: %s \n", $this->elements[0]);
         exit(22);
