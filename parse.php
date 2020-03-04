@@ -206,9 +206,9 @@ class instruction {
         else {
           //je-li retezec ok, jeste je treba upravit znaky co jsou specificke pro xml
           $this->elements[$index] = preg_replace("/^string@/", "", $this->elements[$index]);
-          $this->elements[$index] = preg_replace("/&/", "@amp;", $this->elements[$index]);
-          $this->elements[$index] = preg_replace("/>/", "&lt;", $this->elements[$index]);
-          $this->elements[$index] = preg_replace("/</", " &gt;", $this->elements[$index]);
+          //$this->elements[$index] = preg_replace("/&/", "&amp;", $this->elements[$index]);
+          //$this->elements[$index] = preg_replace("/>/", "&lt;", $this->elements[$index]);
+          //$this->elements[$index] = preg_replace("/</", " &gt;", $this->elements[$index]);
         }
       }
       //pokud nevyhovuje ani jednomu
