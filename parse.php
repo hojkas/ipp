@@ -122,6 +122,7 @@ class instruction {
             $line = trim($line);
             if(empty($line)) continue;
 
+            $line = preg_replace("/#/", " #", $line);
             $this->elements= preg_split('/\s+/', $line);
             $this->destroy_comments();
 
@@ -146,6 +147,7 @@ class instruction {
           //rozdeleni nacteneho radku do pole stringu podle whitespace
           $line = trim($line);
           if(empty($line)) continue;
+          $line = preg_replace("/#/", " #", $line);
           $this->elements= preg_split('/\s+/', $line);
           $this->destroy_comments();
 
