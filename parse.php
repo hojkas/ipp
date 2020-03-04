@@ -179,7 +179,7 @@ class instruction {
             $this->elements[$index] = preg_replace("/^bool@/", "", $this->elements[$index]);
           }
           fprintf(STDERR, "Chybna hodnota boolu v %s.\n", $this->elements[$index]);
-          exit(22);
+          exit(23);
         }
       }
       //kontrola int
@@ -191,7 +191,7 @@ class instruction {
             return;
           }
           fprintf(STDERR, "Chybna hodnota int v %s.\n", $this->elements[$index]);
-          exit(22);
+          exit(23);
         }
         $this->elements[$index] = preg_replace("/^int@/", "", $this->elements[$index]);
       }
@@ -201,7 +201,7 @@ class instruction {
         if(preg_match("/^string@[([^#\s\\]|(\\\d{3}))]+$/", $this->elements[$index]) === false) {
           if(preg_match("/^string@nil$/", $this->elements[$index]) === false && $can_be_nil) return;
           fprintf(STDERR, "Chybna hodnota string v %s.\n", $this->elements[$index]);
-          exit(22);
+          exit(23);
         }
         else {
           //je-li retezec ok, jeste je treba upravit znaky co jsou specificke pro xml
@@ -214,21 +214,21 @@ class instruction {
       //pokud nevyhovuje ani jednomu
       else {
         fprintf(STDERR, "Chybna syntax %s, ocekavana promenna nebo dobre formatovana hodnota.\n", $this->elements[$index]);
-        exit(22);
+        exit(23);
       }
     }
 
     private function check_var($index) {
       if(preg_match("/^(G|T|L)F@[a-zA-Z_\-$&%*!?][a-zA-Z0-9_\-$&%*!?]*$/", $this->elements[$index]) == false) {
         fprintf(STDERR, "Promenna %s nevyhovuje pozadavkum.\n", $this->elements[$index]);
-        exit(22);
+        exit(23);
       }
     }
 
     private function check_label($index) {
       if(preg_match("/^[a-zA-Z_\-$&%*!?][a-zA-Z0-9_\-$&%*!?]*$/", $this->elements[$index]) == false) {
         fprintf(STDERR, "Navesti (label) %s nevyhovuje pozadavkum.\n", $this->elements[$index]);
-        exit(22);
+        exit(23);
       }
     }
 
@@ -242,7 +242,7 @@ class instruction {
       if(sizeof($i_array[$key]) != sizeof($this->elements)) {
         fprintf(STDERR, "Chybny pocet argumentu dane instrukce %s, ocekavano %d argumentu.\n",
         $this->elements[0], sizeof($i_array[$key]) - 1);
-        exit(22);
+        exit(23);
       }
 
       if(sizeof($i_array[$key]) == 1) return; //zadny operand, vse ok
@@ -283,7 +283,7 @@ class instruction {
         //tady trochu weird, boola prochází, vše prochází TODO
         if(preg_match("/^(int|bool|string)$/", $this->elements[2]) === false) {
           fprintf(STDERR, "Nepovoleny type (zadano %s).\n", $this->elements[2]);
-          exit(22);
+          exit(23);
         }
         $xml->startElement('arg2');
         $xml->writeAttribute('type', 'type');
