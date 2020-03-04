@@ -83,6 +83,7 @@ class instruction {
         $this->line_cnt = 0;
         $this->eof_reached = false;
         $this->header = false;
+        $this->elements = array();
     }
 
     /* Odstrani komentare z elements array
@@ -90,7 +91,9 @@ class instruction {
     private function destroy_comments() {
       $found = false;
       $index = 0;
+      if(sizeof($this->elements) == 0) return;
       foreach($this->elements as $word) {
+        if(strlen($word) == 0) continue;
         if($word[0] == '#') {
           $found = true;
           break;
@@ -98,6 +101,7 @@ class instruction {
         $index++;
       }
       if($found) array_splice($this->elements, $index);
+      $this->elements = array_filter($this->elements);
     }
 
     /* Nacte dalsi radek ze stdout
