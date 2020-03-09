@@ -40,12 +40,14 @@ $i_array = array(
   array("BREAK")
 );
 
+/* Funkce zkontroluje správný počet/tvar argumentů, v pripade "--help"
+ * vypise napovedu a ukonci korektne program.
+*/
 function check_args($argc, $argv) {
-    /*$opt = getopt(NULL, array("help"));
-    var_dump($opt);*/
     if($argc == 2 && (strcmp($argv[1], "--help") == 0)) {
         echo "Skript typu filtr nacte ze standardniho vstupu zdrojovy kod v IPPcode20,
-zkontroluje lexikalni a syntaktickou spravnost kodu a vypise\nna standardni výstup XML reprezentaci programu dle specifikace.\n";
+zkontroluje lexikalni a syntaktickou spravnost kodu a vypise\n
+na standardni výstup XML reprezentaci programu dle specifikace.\n";
         exit(0);
     }
     else if($argc == 1) return;
@@ -159,6 +161,9 @@ class instruction {
         }
     }
 
+    /* Funkce zkontroluje, zda prvek v elements na pozici $index
+    *  splnuje format pro symbol
+    */
     private function check_symb($index, $can_be_nil) {
       //kontrola zdaůli jde o promennou
       if(preg_match("/^(G|T|L)F@[a-zA-Z_\-$&%\*!\?][a-zA-Z0-9_\-$&%\*!\?]*$/", $this->elements[$index])) {
@@ -208,11 +213,8 @@ class instruction {
           exit(23);
         }
         else {
-          //je-li retezec ok, jeste je treba upravit znaky co jsou specificke pro xml
+          //je-li retezec ok, odstrani pro ucely xml zapisu cast "string@"
           $this->elements[$index] = preg_replace("/^string@/", "", $this->elements[$index]);
-          //$this->elements[$index] = preg_replace("/&/", "&amp;", $this->elements[$index]);
-          //$this->elements[$index] = preg_replace("/>/", "&lt;", $this->elements[$index]);
-          //$this->elements[$index] = preg_replace("/</", " &gt;", $this->elements[$index]);
         }
       }
       //pokud nevyhovuje ani jednomu
@@ -222,6 +224,9 @@ class instruction {
       }
     }
 
+    /* Funkce zkontroluje, zda prvek v elements na pozici $index
+    *  splnuje format pro promennou
+    */
     private function check_var($index) {
       if(preg_match("/^(G|T|L)F@[a-zA-Z_\-$&%*!?][a-zA-Z0-9_\-$&%*!?]*$/", $this->elements[$index]) == false) {
         fprintf(STDERR, "Promenna %s nevyhovuje pozadavkum.\n", $this->elements[$index]);
@@ -229,6 +234,9 @@ class instruction {
       }
     }
 
+    /* Funkce zkontroluje, zda prvek v elements na pozici $index
+    *  splnuje format pro label (navesti)
+    */
     private function check_label($index) {
       if(preg_match("/^[a-zA-Z_\-$&%*!?][a-zA-Z0-9_\-$&%*!?]*$/", $this->elements[$index]) == false) {
         fprintf(STDERR, "Navesti (label) %s nevyhovuje pozadavkum.\n", $this->elements[$index]);
@@ -328,6 +336,7 @@ class instruction {
         exit(22);
       }
 
+      //zapise do xml
       $xml->startElement('instruction');
       $xml->writeAttribute('order', $this->line_cnt);
       $xml->writeAttribute('opcode', $this->elements[0]);
@@ -339,16 +348,17 @@ class instruction {
 
 }
 
-check_args($argc, $argv);
-start_xml($xml);
+//samotny zacatek programu
+check_args($argc, $argv);             //kontrola argumentu
+start_xml($xml);                      //zacatek xml
 
-$i = new instruction;
-$i->next_line();
-while($i->eof_reached === FALSE) {
-  $i->process_instruction();
-  $i->next_line();
+$i = new instruction;                 //vytvori instanci instrukce
+$i->next_line();                      //nacte poprve radek
+while($i->eof_reached === FALSE) {    //smycka dokud je co nacitat
+  $i->process_instruction();          //zpracuje nacteny radek
+  $i->next_line();                    //pokusi se nacist dalsi radek
 }
 
-end_xml($xml);
+end_xml($xml);                        //ukonci xml zapis
 
 ?>
