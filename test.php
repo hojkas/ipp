@@ -39,6 +39,11 @@ function is_testable($file) {
   else return false;
 }
 
+function has_out($file) {
+  if(is_readable($file.".out")) return true;
+  else return false;
+}
+
 function test_one_rc($file) {
   global $error_log;
   exec('php parse.php <'.$file.'.src 2>/dev/null', $output, $rc);
@@ -51,16 +56,49 @@ function test_one_rc($file) {
   }
 }
 
+function test_one_out($file) {
+  global $error_log;
+  exec('php parse.php <'.$file.'.src >my_out 2>/dev/null', $output, $rc);
+  $real_rc = file_get_contents($file.'.rc');
+  $real_rc = trim($real_rc);
+  exec('java -jar /jexamxml/jexamxml.jar '.$file.'.out my_out diffs.xml -D /jexamxml/options', $xml_out, $xml_rc);
+
+  shell_exec('rm my_out');
+
+  if($rc === $real_rc && $xml_rc === 0) return true;
+  else {
+    if($rc !== $real_rc) $error_log[] = 'Got '.$rc.' expected '.$real_rc.' in test '.$file;
+    if($xml_rc !== 0) {
+      $diffs = file_get_contents('diffs.xml');
+      $error_log[] = 'XML was different: '.$diffs;
+      if(is_readable('diffs.xml')) shell_exec('rm diffs.xml');
+    }
+    return false;
+  }
+}
+
 function test_all($files) {
   global $error_log;
   $count = 0;
   $total = 0;
+  $out = 0;
+  $outable = 0;
   $size = sizeof($files) - 1;
   foreach($files as $file) {
     echo "\rTesting ", $total, " / ", $size;
     if(is_testable($file)) {
-      if(test_one_rc($file)) $count++;
-      $total++;
+      if(has_out($file)) {
+        if(test_one_out($file)) {
+          $out++;
+          $count++;
+        }
+        $outable++;
+        $total++;
+      }
+      else {
+        if(test_one_rc($file)) $count++;
+        $total++;
+      }
     }
   }
   echo "\n";
