@@ -136,7 +136,7 @@ class instruction {
             $this->destroy_comments();
 
             if(sizeof($this->elements) == 0) continue;
-            else if(preg_match("/^.[iI][pP][pP][cC][oO][dD][eE]20/", $this->elements[0]) && sizeof($this->elements) == 1) {
+            else if(preg_match("/^.[iI][pP][pP][cC][oO][dD][eE]20$/", $this->elements[0]) && sizeof($this->elements) == 1) {
               $this->header = true;
               break;
             }
@@ -174,7 +174,7 @@ class instruction {
         return;
       }
       //jde-li o cisty nil
-      else if(preg_match("/^nil@nil/", $this->elements[$index])) {
+      else if(preg_match("/^nil@nil$/", $this->elements[$index])) {
         $this->last_type = "nil";
         $this->elements[$index] = preg_replace("/^nil@/", "", $this->elements[$index]);
         return;
@@ -182,7 +182,7 @@ class instruction {
       //kontrola zda-li jde o bool
       else if(preg_match("/^bool@/", $this->elements[$index])) {
         $this->last_type = "bool";
-        if(preg_match("/^bool@(true|false)$/", $this->elements[$index])) {
+        if(preg_match('/^bool@(true|false)$/', $this->elements[$index])) {
           $this->elements[$index] = preg_replace("/^bool@/", "", $this->elements[$index]);
           return;
         }
@@ -229,6 +229,7 @@ class instruction {
 
     /* Funkce zkontroluje, zda prvek v elements na pozici $index
     *  splnuje format pro promennou
+    *  $index
     */
     private function check_var($index) {
       if(preg_match("/^(G|T|L)F@[a-zA-Z_\-$&%*!?][a-zA-Z0-9_\-$&%*!?]*$/", $this->elements[$index]) == false) {
