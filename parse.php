@@ -2,6 +2,9 @@
 
 $xml = new XMLWriter();
 
+/* Pole instrukci a typu parametru ktere vyzaduji
+ * pro snadne vyhledani a otestovani parametru
+ */
 $i_array = array(
   array("MOVE",       "var", "symb"),
   array("CREATEFRAME"),
