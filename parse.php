@@ -250,6 +250,8 @@ class instruction {
 
     /* Zkontroluje argumenty, aka položky 1 až n elements, a zpracuje do xml
     * volano exklusivne jen z process_instruction
+    * $key je index do global pole $i_array, kde se nachazi prave
+    * parsovana instrukce
     */
     private function process_arguments($key) {
       global $xml;
