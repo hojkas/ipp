@@ -1,18 +1,61 @@
 <?php
-$error_log = array();
 
-function check_args($argc, $argv) {
-    /*$opt = getopt(NULL, array("help"));
-    var_dump($opt);*/
-    if($argc == 2 && (strcmp($argv[1], "--parse-only") == 0)) {
-        return;
-    }
-    else {
-      fprintf(STDERR, "test.php zatim podporuje pouze parse-only\n");
+class params {
+  public $t_dir, $p_dir, $i_dir, $jexamxml, $rec, $p_only, $i_only;
+
+  public function __construct() {
+    $this->t_dir = './';
+    $this->p_dir = './';
+    $this->i_dir = './';
+    //TODO default merlin value
+    $this->jexamxml = './jexamxml/jexamxml.jar';
+    //$jexamxml = '/pub/courses/ipp/jexamxml/jexamxml.jar';
+
+    $this->rec = false;
+    $this->p_only = false;
+    $this->i_only = false;
+  }
+
+  public function check_args($argc, $argv) {
+    $long_opts = array("help", "directory:", "recursive", "parse-script:", "int-script:",
+    "parse-only", "int-only", "jexamxml:");
+    $opt = getopt(NULL, $long_opts);
+
+    if(array_key_exists("help", $opt)) {
+      //TODO real hlaseni
+      echo "temp help text\n";
       exit(0);
     }
+
+    if(array_key_exists("directory", $opt)) $this->t_dir = $opt["directory"];
+    if(array_key_exists("recursive", $opt)) $this->rec = true;
+    if(array_key_exists("parse-script", $opt)) $this->p_dir = $opt["parse-script"];
+    if(array_key_exists("int-script", $opt)) $this->i_dir = $opt["int-script"];
+    if(array_key_exists("parse-only", $opt)) $this->p_only = true;
+    if(array_key_exists("int-only", $opt)) $this->i_only = true;
+    if(array_key_exists("jexamxml", $opt)) $this->jexamxml = $opt["jexamxml"];
+
+    if($this->i_only && ($this->p_only || array_key_exists("parse-script")) || ($this->p_only && array_key_exists("int-script"))) {
+      echo "Zakazana kombinace parametru: nelze omezit funkci pouze na parser nebo interpret ",
+      "a zaroven uvest parametry pro ten druhy.\n";
+      exit(10);
+    }
+
+    /*
+    //TODO remove, just debug
+    echo "--- DEBUG INFO\ntest dir: ", $t_dir, "\npars dir: ", $p_dir,
+    "\ninte dir: ", $i_dir, "\njxml dir: ", $jexamxml, "\nrecursive:  ";
+    if($rec) echo "Y\n"; else echo "N\n";
+    echo "parse-only: ";
+    if($p_only) echo "Y\n"; else echo "N\n";
+    echo "int-only:   ";
+    if($i_only) echo "Y\n"; else echo "N\n";
+    echo "---\n\n";
+    */
+  }
 }
 
+//start of dead code
 function extract_files($files, $dir) {
   if(preg_match("/GENERATED/", $dir)) return $files; //radek vynechava slozku GENERATED
   $last = "";
@@ -112,16 +155,11 @@ function test_all($files) {
     echo $err, "\n";
   }
 }
+//end of dead code
 
-check_args($argc, $argv);
-//$rc = shell_exec('php parse.php <text.txt');
-//echo "$rc\n"
-
-//$dir = './ofi_tests/parse-only/';
-$dir = './people_tests/parse-only/';
-$files = array();
-$files = extract_files($files, $dir);
-test_all($files);
+//main
+$p = new params;
+$p->check_args($argc, $argv);
 
 
 ?>
