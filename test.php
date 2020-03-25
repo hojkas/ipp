@@ -1,5 +1,34 @@
 <?php
 
+class html {
+  private $start, $start_b, $body, $end, $title;
+  public $out;
+
+  public function __construct() {
+    $this->start = "<!DOCTYPE html>\n<html>\n<head>\n<title>";
+    $this->title = "untitled";
+    $this->start_b = "</title>\n</head>\n";
+    $this->end = "</html>\n";
+    $this->body = "";
+  }
+
+  public function title($new) {
+    $this->title = $new;
+  }
+
+  public function header($n, $header) {
+    $this->body .= "<h".$n.">".$header."</h".$n.">\n";
+  }
+
+  public function center_header($n, $str) {
+    $this->body .= "<h".$n." align=\"center\">".$str."</h".$n.">\n";
+  }
+
+  public function finish() {
+    $this->out = $this->start.$this->title.$this->start_b."<body>\n".$this->body."</body>\n".$this->end;
+  }
+}
+
 class params {
   public $t_dir, $p_dir, $i_dir, $jexamxml, $rec, $p_only, $i_only;
 
@@ -56,6 +85,7 @@ class params {
 }
 
 //start of dead code
+/*
 function extract_files($files, $dir) {
   if(preg_match("/GENERATED/", $dir)) return $files; //radek vynechava slozku GENERATED
   $last = "";
@@ -134,7 +164,7 @@ function test_all($files) {
   foreach($files as $file) {
     echo "\rTesting ", $total+1, " / ", $size;
     if(is_testable($file)) {
-      /*if(has_out($file)) {
+      if(has_out($file)) {
         if(test_one_out($file)) {
           $out++;
           $count++;
@@ -142,7 +172,7 @@ function test_all($files) {
         $outable++;
         $total++;
       }
-      else {*/
+      else {
         if(test_one_rc($file)) $count++;
         $total++;
       //}
@@ -154,12 +184,20 @@ function test_all($files) {
   foreach($error_log as $err) {
     echo $err, "\n";
   }
-}
+}*/
 //end of dead code
 
 //main
+/*
 $p = new params;
 $p->check_args($argc, $argv);
+*/
+$html = new html;
+$html->title("Test");
+$html->header(1, "Testing");
+$html->center_header(3, "Stav");
 
+$html->finish();
+echo $html->out;
 
 ?>
