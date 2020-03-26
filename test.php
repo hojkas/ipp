@@ -1,15 +1,38 @@
 <?php
 
 class html {
-  private $start, $start_b, $body, $end, $title;
+  private $start, $start_b, $style, $start_c, $header, $results, $body, $end, $title;
+  private $total_rc, $total_out, $good_rc, $good_out, $err_log;
+  private $is_testing;
   public $out;
 
   public function __construct() {
+    $this->total_rc = 0;
+    $this->total_out = 0;
+    $this->good_rc = 0;
+    $this->good_out = 0;
+    $this->is_testing = false;
+
     $this->start = "<!DOCTYPE html>\n<html>\n<head>\n<title>";
     $this->title = "untitled";
-    $this->start_b = "</title>\n</head>\n";
+    $this->start_b = "</title>\n";
+    $this->style = "<style>\n".
+".header {
+  padding: 10px;
+  text-align: center;
+  background: #1abc9c;
+  color: white;
+  font-size: 30px;
+}\n"
+      ."</style>\n";
+    $this->start_c = "</head>\n";
     $this->end = "</html>\n";
+    $this->header = "<div class=\"header\">\n<h1 style=\"padding:0\">IPP projekt: Test</h1>".
+    "\n<p style=\"font-size:20px\">Testováno ".
+    date("d.m.y H:m")."</p>\n</div>\n";
+    $this->results = "";
     $this->body = "";
+    $err_log = "";
   }
 
   public function title($new) {
@@ -24,8 +47,35 @@ class html {
     $this->body .= "<h".$n." align=\"center\">".$str."</h".$n.">\n";
   }
 
+  private function start_testing() {
+    $this->body .= "<table style=\"width:60%; border:1px solid black;margin-left:auto;margin-right:auto;\">\n";
+  }
+
+  private function end_testing() {
+    $this->body .= "</table>\n";
+    if(!empty($this->err_log)) {
+      $this->body .= $this->header(3, "Vrácené rozdíly:");
+    }
+  }
+
+  public function add_result($name, $real_rc, $got_rc, $rc_good, $only_rc, $out_good, $error_log) {
+    if(!$this->is_testing) {
+      $this->start_testing();
+      $is_testing = true;
+    }
+
+    $this->body .= "  <tr>\n    <th style=\"background-color:";
+    if($rc_good && ($only_rc || $out_good)) $this->body .= "green\"";
+    else $this->body .= "red\"";
+    $this->body .= ">".$name."</th>\n";
+    $this->body .= "  </tr>\n";
+  }
+
   public function finish() {
-    $this->out = $this->start.$this->title.$this->start_b."<body>\n".$this->body."</body>\n".$this->end;
+    $this->end_testing();
+    $this->out = $this->start.$this->title.$this->start_b.$this->style.$this->start_c."<body>\n".
+    $this->header.$this->results.$this->body.$this->err_log."</body>\n".$this->end;
+    echo $this->out;
   }
 }
 
@@ -194,10 +244,8 @@ $p->check_args($argc, $argv);
 */
 $html = new html;
 $html->title("Test");
-$html->header(1, "Testing");
-$html->center_header(3, "Stav");
-
+$html->add_result("testik", 2, 2, true, false, true, "nothing");
 $html->finish();
-echo $html->out;
+
 
 ?>
