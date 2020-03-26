@@ -23,6 +23,21 @@ class html {
   background: #1abc9c;
   color: white;
   font-size: 30px;
+}
+h2 {
+  padding: 0px;
+  margin: 5px;
+}
+table {
+  width: 60%;
+  border: 1px solid black;
+  margin-left: auto;
+  margin-right: auto;
+  border-collapse: collapse;
+  font-size: 20px;
+}
+th {
+  height: 40px;
 }\n"
       ."</style>\n";
     $this->start_c = "</head>\n";
@@ -47,8 +62,21 @@ class html {
     $this->body .= "<h".$n." align=\"center\">".$str."</h".$n.">\n";
   }
 
+  public function center_result_header($n, $str) {
+    $this->results .= "<h".$n." align=\"center\">".$str."</h".$n.">\n";
+  }
+
   private function start_testing() {
-    $this->body .= "<table style=\"width:60%; border:1px solid black;margin-left:auto;margin-right:auto;\">\n";
+    $this->body .= "<table>\n";
+  }
+
+  private function count_results() {
+    $this->results .= "<br/>\n";
+    $this->center_result_header(2, "Správné návratové kódy:");
+    $this->center_result_header(2, $this->good_rc."/".$this->total_rc);
+    $this->center_result_header(2, "Správné výstupy:");
+    $this->center_result_header(2, $this->good_out."/".$this->total_out."\n");
+    $this->results .= "<br/>\n";
   }
 
   private function end_testing() {
@@ -73,6 +101,7 @@ class html {
 
   public function finish() {
     $this->end_testing();
+    $this->count_results();
     $this->out = $this->start.$this->title.$this->start_b.$this->style.$this->start_c."<body>\n".
     $this->header.$this->results.$this->body.$this->err_log."</body>\n".$this->end;
     echo $this->out;
@@ -245,6 +274,8 @@ $p->check_args($argc, $argv);
 $html = new html;
 $html->title("Test");
 $html->add_result("testik", 2, 2, true, false, true, "nothing");
+$html->add_result("read_simple", 2, 2, true, false, false, "nothing3");
+$html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
 $html->finish();
 
 
