@@ -2,7 +2,7 @@
 
 class html {
   private $start, $start_b, $style, $start_c, $header, $results, $body, $end, $title;
-  private $total_rc, $total_out, $good_rc, $good_out, $err_log;
+  private $total_rc, $total_out, $good_rc, $good_out, $err_log, $err_cnt;
   private $is_testing;
   public $out;
 
@@ -12,6 +12,7 @@ class html {
     $this->good_rc = 0;
     $this->good_out = 0;
     $this->is_testing = false;
+    $this->err_cnt = 0;
 
     $this->start = "<!DOCTYPE html>\n<html>\n<head>\n<title>";
     $this->title = "untitled";
@@ -30,14 +31,42 @@ h2 {
 }
 table {
   width: 60%;
-  border: 1px solid black;
+  border: 2px solid black;
   margin-left: auto;
   margin-right: auto;
   border-collapse: collapse;
   font-size: 20px;
+  table-layout: fixed;
 }
 th {
   height: 40px;
+  border: 2px solid black;
+  border-collapse: collapse;
+}
+ul {
+  margin-left: 30px;
+  margin-right: 30px;
+}
+li {
+  font-size: 20px;
+  padding: 10px;
+}
+:target {
+  background: #cfcfcf;
+}
+#progressbar {
+  background-color: red;
+  border-radius: 5px;
+  width: 20%;
+  height: 25px;
+  margin: auto;
+  text-align: center;
+  border: 2px solid black;
+}
+#progressbar>div {
+  background-color: green;
+  height: 25px;
+  border-radius: 5px;
 }\n"
       ."</style>\n";
     $this->start_c = "</head>\n";
@@ -67,7 +96,9 @@ th {
   }
 
   private function start_testing() {
-    $this->body .= "<table>\n";
+    $this->body .= "<table>\n".
+    " <tr>\n    <th>Název</th>\n   <th>Správný rc</th>\n".
+    "   <th>Správný output</th>\n     <th>Podrobněji chyby</th>\n </tr>\n";
   }
 
   private function count_results() {
@@ -76,26 +107,50 @@ th {
     $this->center_result_header(2, $this->good_rc."/".$this->total_rc);
     $this->center_result_header(2, "Správné výstupy:");
     $this->center_result_header(2, $this->good_out."/".$this->total_out."\n");
+    $this->results .= "<div id=\"progressbar\" max=\"1\" value=\"0.2\">\n<div>".(($this->good_out/$this->total_out)*100)."%</div>\n</div>\n";
     $this->results .= "<br/>\n";
   }
 
   private function end_testing() {
     $this->body .= "</table>\n";
     if(!empty($this->err_log)) {
-      $this->body .= $this->header(3, "Vrácené rozdíly:");
+      $this->body .= $this->header("2 style=\"margin-left:20px; margin-right:20px+\"", "Podrobněji chyby:");
+      $this->err_log = "<ul>\n".$this->err_log."</ul>\n";
     }
   }
 
   public function add_result($name, $real_rc, $got_rc, $rc_good, $only_rc, $out_good, $error_log) {
     if(!$this->is_testing) {
       $this->start_testing();
-      $is_testing = true;
+      $this->is_testing = true;
+    }
+
+    $this->total_rc++;
+    if($rc_good) $this->good_rc++;
+    if(!$only_rc) {
+      $this->total_out++;
+      if($out_good) $this->good_out++;
     }
 
     $this->body .= "  <tr>\n    <th style=\"background-color:";
     if($rc_good && ($only_rc || $out_good)) $this->body .= "green\"";
     else $this->body .= "red\"";
     $this->body .= ">".$name."</th>\n";
+
+    if($rc_good) $this->body .= "   <th>ANO</th>\n";
+    else $this->body .= "   <th style=\"font-color:red\">NE</th>";
+
+    if($out_good) $this->body .= "   <th>ANO</th>\n";
+    else if($only_rc) $this->body .= "   <th>-</th>\n";
+    else $this->body .= "   <th style=\"color:red\">NE</th>\n";
+
+    if(empty($error_log)) $this->body .= "    <th>-</th>\n";
+    else {
+      $this->err_cnt++;
+      $this->err_log .= "<li id=\"err_".$this->err_cnt."\">".$error_log."</li>\n";
+      $this->body .= "    <th><a href=#err_".$this->err_cnt.">[".$this->err_cnt."]</th>";
+    }
+
     $this->body .= "  </tr>\n";
   }
 
@@ -274,7 +329,7 @@ $p->check_args($argc, $argv);
 $html = new html;
 $html->title("Test");
 $html->add_result("testik", 2, 2, true, false, true, "nothing");
-$html->add_result("read_simple", 2, 2, true, false, false, "nothing3");
+$html->add_result("read_simple", 2, 2, true, false, false, NULL);
 $html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
 $html->finish();
 
