@@ -1,4 +1,5 @@
 <?php
+//xdg-open html
 
 class html {
   private $start, $start_b, $style, $start_c, $header, $results, $body, $end, $title;
@@ -21,7 +22,7 @@ class html {
 ".header {
   padding: 10px;
   text-align: center;
-  background: #1abc9c;
+  background: #00ba06;
   color: white;
   font-size: 30px;
 }
@@ -31,7 +32,6 @@ h2 {
 }
 table {
   width: 60%;
-  border: 2px solid black;
   margin-left: auto;
   margin-right: auto;
   border-collapse: collapse;
@@ -54,19 +54,25 @@ li {
 :target {
   background: #cfcfcf;
 }
-#progressbar {
-  background-color: red;
-  border-radius: 5px;
-  width: 20%;
-  height: 25px;
-  margin: auto;
-  text-align: center;
+.meter {
   border: 2px solid black;
+	height: 20px;
+  width: 20%;
+	background: #ff2200;
+	-moz-border-radius: 25px;
+	-webkit-border-radius: 25px;
 }
-#progressbar>div {
-  background-color: green;
-  height: 25px;
-  border-radius: 5px;
+.meter > span {
+  display: block;
+  height: 100%;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+  background-color: #00ba06;
+  position: relative;
+  overflow: hidden;
+}
 }\n"
       ."</style>\n";
     $this->start_c = "</head>\n";
@@ -105,9 +111,10 @@ li {
     $this->results .= "<br/>\n";
     $this->center_result_header(2, "Správné návratové kódy:");
     $this->center_result_header(2, $this->good_rc."/".$this->total_rc);
+    $this->results .= "<div class=\"meter\" style=\"margin-left:auto; margin-right:auto\">\n  <span style=\"width: ".(($this->good_rc/$this->total_rc)*100)."%\"></span>\n</div>";
     $this->center_result_header(2, "Správné výstupy:");
     $this->center_result_header(2, $this->good_out."/".$this->total_out."\n");
-    $this->results .= "<div id=\"progressbar\" max=\"1\" value=\"0.2\">\n<div>".(($this->good_out/$this->total_out)*100)."%</div>\n</div>\n";
+    $this->results .= "<div class=\"meter\" style=\"margin-left:auto; margin-right:auto\">\n  <span style=\"width: ".(($this->good_out/$this->total_out)*100)."%\"></span>\n</div>";
     $this->results .= "<br/>\n";
   }
 
@@ -133,16 +140,16 @@ li {
     }
 
     $this->body .= "  <tr>\n    <th style=\"background-color:";
-    if($rc_good && ($only_rc || $out_good)) $this->body .= "green\"";
-    else $this->body .= "red\"";
+    if($rc_good && ($only_rc || $out_good)) $this->body .= "#00ba06\"";
+    else $this->body .= "#ff2200\"";
     $this->body .= ">".$name."</th>\n";
 
     if($rc_good) $this->body .= "   <th>ANO</th>\n";
-    else $this->body .= "   <th style=\"font-color:red\">NE</th>";
+    else $this->body .= "   <th style=\"font-color:#ff2200\">NE</th>";
 
     if($out_good) $this->body .= "   <th>ANO</th>\n";
     else if($only_rc) $this->body .= "   <th>-</th>\n";
-    else $this->body .= "   <th style=\"color:red\">NE</th>\n";
+    else $this->body .= "   <th style=\"color:#ff2200\">NE</th>\n";
 
     if(empty($error_log)) $this->body .= "    <th>-</th>\n";
     else {
@@ -331,6 +338,20 @@ $html->title("Test");
 $html->add_result("testik", 2, 2, true, false, true, "nothing");
 $html->add_result("read_simple", 2, 2, true, false, false, NULL);
 $html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
+$html->add_result("hey", 2, 2, true, true, false, "Hello this is a message, cool right? Return code was 1, but expected 0. That sucks, rigth?");
+$html->add_result("testik", 2, 2, true, false, true, "nothing");
+$html->add_result("read_simple", 2, 2, true, false, false, NULL);
+$html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
+$html->add_result("testik", 2, 2, true, false, true, "nothing");
+$html->add_result("read_simple", 2, 2, true, false, false, NULL);
+$html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
+$html->add_result("testik", 2, 2, true, false, true, "nothing");
+$html->add_result("read_simple", 2, 2, true, false, false, NULL);
+$html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
+$html->add_result("testik", 2, 2, true, false, true, "nothing");
+$html->add_result("read_simple", 2, 2, true, false, false, NULL);
+$html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
+
 $html->finish();
 
 
