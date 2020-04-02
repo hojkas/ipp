@@ -327,6 +327,9 @@ function test_all($files) {
   }
 }*/
 //end of dead code
+class testing {
+
+}
 
 //main
 /*
