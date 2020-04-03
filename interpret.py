@@ -2,8 +2,6 @@ import sys
 import re
 import xml.etree.ElementTree as et
 import getopt
-from os import access, R_OK
-from os.path import isfile
 
 int_source = ''
 int_input = ''
@@ -71,11 +69,31 @@ class ProcessXml:
             except et.ParseError:
                 print('XML source ze souboru "', int_source, '" neni "well-formed".', sep='', file=sys.stderr)
                 exit(31)
+        self.root = self.source.getroot()
+        if self.root.tag != 'program':
+            print('Korenovy element XML zdroje neni "program".', file=sys.stderr)
+            exit(32)
+
+        attribs = self.root.attrib
+        lang_found = False
+
+        for att_name, att_value in attribs.items():
+            if att_name == 'language':
+                lang_found = True
+                if att_value != 'IPPcode20':
+                    print('Program nema pozadovany atribut language "IPPcode20".', file=sys.stderr)
+                    exit(32)
+            elif att_name != 'name' and att_name != 'description':
+                print('Neznamy textovy atribut "', att_name, '" v korenovem elementu program.', sep='', file=sys.stderr)
+                exit(32)
+
+        if not lang_found:
+            print('Program nema pozadovany atribut language "IPPcode20".', file=sys.stderr)
+            exit(32)
 
 
 # MAIN BODY
 check_args()
 xml = ProcessXml()
-print(xml.source.getroot().tag)
 
 
