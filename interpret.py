@@ -70,7 +70,7 @@ class Variable:
 
 class Argument:
     def __init__(self, a_type, value):
-        if a_type != 'symb' and a_type != 'var' and a_type != 'type' and a_type != 'label':
+        if a_type != 'int' and a_type != 'string' and a_type != 'bool' and a_type != 'nil' and a_type != 'var' and a_type != 'type' and a_type != 'label':
             print('Neexistujici atribut type "', a_type, '" u argumentu.', sep='', file=sys.stderr)
             exit(32)
         self.type = a_type
@@ -79,9 +79,9 @@ class Argument:
 
 
 class Instruction:
-    def __init__(self, name, order, arg1, arg2, arg3):
-        name = name.upper()
-        self.opcode = name
+    def __init__(self, opcode, order, arg1, arg2, arg3):
+        opcode = opcode.upper()
+        self.opcode = opcode
         self.order = order
 
         # pole moznych instrukci a jejich operandu
@@ -139,7 +139,7 @@ class Instruction:
         # cyklus najde jmeno instrukce v possible a overi typ argumentu, existuji-li
         valid = False
         for poss, a1, a2, a3 in possible:
-            if poss == name:
+            if poss == opcode:
                 valid = True
                 if a1 != arg1_type or a2 != arg2_type or a3 != arg3_type:
                     print('U instrukce "', poss, '" nesedi typ argumentu. Ocekavany "', a1, '/', a2, '/', a3,
@@ -152,7 +152,7 @@ class Instruction:
                 break
 
         if not valid:
-            print('Neznama instrukce"', name, '".', sep='', file=sys.stderr)
+            print('Neznama instrukce"', opcode, '".', sep='', file=sys.stderr)
             exit(32)
 
 
@@ -226,14 +226,30 @@ class ProcessSource:
 
     def get_instruction(self, elem):
         count = 0
+        arg1 = None
+        arg2 = None
+        arg3 = None
         for arg in elem:
             if arg.tag != 'arg1' and arg.tag != 'arg2' and arg.tag != 'arg3':
                 print('Neocekavany element "', arg, '" nalezen, ocekavano arg1-3.', sep='', file=sys.stderr)
                 exit(32)
-            if len(arg.attrib) != 1 or not 'type' in arg.attrib:
-                print('Spatny pocet atributu argumentu v instrukci', elem.attrib['opcode'], 'nebo neslo o atribut "type".', file=sys.stderr)
+            if len(arg.attrib) != 1 or 'type' not in arg.attrib:
+                print('Spatny pocet atributu argumentu v instrukci', elem.attrib['opcode'],
+                      'nebo neslo o atribut "type".', file=sys.stderr)
                 exit(32)
-
+            count += 1
+            if count == 1:
+                arg1 = Argument(arg.attrib['type'], arg.text)
+            elif count == 2:
+                arg2 = Argument(arg.attrib['type'], arg.text)
+            elif count == 3:
+                arg2 = Argument(arg.attrib['type'], arg.text)
+            else:
+                print('Prilis argumentu u instrukce', elem.attrib['opcode'], file=sys.stderr)
+                exit(32)
+        if 'opcode' not in elem.attrib or not 'order' in elem.attrib or len(elem.attrib) != 2:
+            print('U instrukce nejsou vhodne atributy (chybi opcode, order ci existuje nejaky extra.', file=sys.stderr)
+        instruction = Instruction(elem.attrib['opcode'], elem.attrib['order'], arg1, arg2, arg3)
 
 # MAIN BODY
 src = ProcessSource()
