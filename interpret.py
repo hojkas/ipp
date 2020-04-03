@@ -128,5 +128,4 @@ class ProcessSource:
 
 # MAIN BODY
 src = ProcessSource()
-print(src.root.tag)
-gf = Frame()
+

@@ -1,2 +1,0 @@
-.IPPcode20
-WRITE TF@a
