@@ -80,11 +80,15 @@ class Argument:
 
 class Instruction:
     def __init__(self, opcode, order, arg1, arg2, arg3):
-        opcode = opcode.upper()
         self.opcode = opcode
         self.order = order
+        self.arg1 = arg1
+        self.arg2 = arg2
+        self.arg3 = arg3
 
+        # TODO delete, existuje jen kdybych zjistila, ze je to tu treba checkovat
         # pole moznych instrukci a jejich operandu
+        '''
         possible = [
           ['MOVE',       'var', 'symb',  None],
           ['CREATEFRAME', None,  None,   None],
@@ -121,39 +125,8 @@ class Instruction:
           ['EXIT',       'symb',  None,   None],
           ['DPRINT',     'symb',  None,   None],
           ['BREAK',       None,   None,   None]]
+        '''
 
-        # uprava typu arg kvuli snazsimu porovnavani pozdeji
-        if arg1 is None:
-            arg1_type = None
-        else:
-            arg1_type = arg1.type
-        if arg2 is None:
-            arg2_type = None
-        else:
-            arg2_type = arg2.type
-        if arg3 is None:
-            arg3_type = None
-        else:
-            arg3_type = arg3.type
-
-        # cyklus najde jmeno instrukce v possible a overi typ argumentu, existuji-li
-        valid = False
-        for poss, a1, a2, a3 in possible:
-            if poss == opcode:
-                valid = True
-                if a1 != arg1_type or a2 != arg2_type or a3 != arg3_type:
-                    print('U instrukce "', poss, '" nesedi typ argumentu. Ocekavany "', a1, '/', a2, '/', a3,
-                          '" ale obdrzeny byly "', arg1_type, '/', arg2_type, '/', arg3_type,
-                          '".', sep='', file=sys.stderr)
-                    exit(32)
-                self.arg1 = arg1
-                self.arg2 = arg2
-                self.arg3 = arg3
-                break
-
-        if not valid:
-            print('Neznama instrukce"', opcode, '".', sep='', file=sys.stderr)
-            exit(32)
 
 
 class Frame:
@@ -171,6 +144,58 @@ class Frame:
             if var.name == name:
                 return True, var.type, var.value
         return False, '', ''
+
+
+# Vytvori z predaneho elementu instrukce objekt instruction s navazanymi objekty argument
+def get_instruction(elem):
+    count = 0
+    arg1 = None
+    arg2 = None
+    arg3 = None
+
+    # zpracovani argumentu instrukce
+    for arg in elem:
+        if arg.tag != 'arg1' and arg.tag != 'arg2' and arg.tag != 'arg3':
+            print('Neocekavany element "', arg, '" nalezen, ocekavano arg1-3.', sep='', file=sys.stderr)
+            exit(32)
+        if len(arg.attrib) != 1 or 'type' not in arg.attrib:
+            print('Spatny pocet atributu argumentu v instrukci', elem.attrib['opcode'],
+                  'nebo neslo o atribut "type".', file=sys.stderr)
+            exit(32)
+        count += 1
+        if count == 1:
+            arg1 = Argument(arg.attrib['type'], arg.text)
+        elif count == 2:
+            arg2 = Argument(arg.attrib['type'], arg.text)
+        elif count == 3:
+            arg2 = Argument(arg.attrib['type'], arg.text)
+        else:
+            print('Prilis argumentu u instrukce', elem.attrib['opcode'], file=sys.stderr)
+            exit(32)
+
+    # kontrola atributu instrukce
+    if 'opcode' not in elem.attrib or 'order' not in elem.attrib or len(elem.attrib) != 2:
+        print('U instrukce nejsou vhodne atributy (chybi opcode, order ci existuje nejaky extra.', file=sys.stderr)
+
+    # kontrola existujiciho opcode
+    possible = ['MOVE', 'CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'DEFVAR', 'CALL', 'RETURN', 'PUSHS', 'POPS',
+                'ADD', 'SUB', 'MUL', 'IDIV', 'LG', 'GT', 'EQ', 'AND', 'OR', 'NOT', 'INT2CHAR', 'STRI2INT', 'READ',
+                'WRITE', 'CONCAT', 'STRLEN', 'GETCHAR', 'SETCHAR', 'TYPE', 'LABEL', 'JUMP', 'JUMPIFEQ',
+                'JUMPIFNEQ', 'EXIT', 'DPRINT', 'BREAK']
+
+    # cyklus najde jmeno instrukce v possible a overi typ argumentu, existuji-li
+    valid = False
+    opcode = elem.attrib['opcode'].upper()
+    for poss in possible:
+        if poss == opcode:
+            valid = True
+            break
+    if not valid:
+        print('Neznama instrukce"', opcode, '".', sep='', file=sys.stderr)
+        exit(32)
+
+    # samotna tvorba objektu instrukce
+    return Instruction(opcode, elem.attrib['order'], arg1, arg2, arg3)
 
 
 class ProcessSource:
@@ -219,38 +244,9 @@ class ProcessSource:
                 print('Neznamy element s nazvem "', inst.tag, '", ocekavany element "instruction".',
                       sep='', file=sys.stderr)
                 exit(32)
-            self.get_instruction(inst)
-            self.ins.append(inst)
-
+            self.ins.append(get_instruction(inst))
         # self.ins.sort(key=lambda x: x.opcode)
 
-    def get_instruction(self, elem):
-        count = 0
-        arg1 = None
-        arg2 = None
-        arg3 = None
-        for arg in elem:
-            if arg.tag != 'arg1' and arg.tag != 'arg2' and arg.tag != 'arg3':
-                print('Neocekavany element "', arg, '" nalezen, ocekavano arg1-3.', sep='', file=sys.stderr)
-                exit(32)
-            if len(arg.attrib) != 1 or 'type' not in arg.attrib:
-                print('Spatny pocet atributu argumentu v instrukci', elem.attrib['opcode'],
-                      'nebo neslo o atribut "type".', file=sys.stderr)
-                exit(32)
-            count += 1
-            if count == 1:
-                arg1 = Argument(arg.attrib['type'], arg.text)
-            elif count == 2:
-                arg2 = Argument(arg.attrib['type'], arg.text)
-            elif count == 3:
-                arg2 = Argument(arg.attrib['type'], arg.text)
-            else:
-                print('Prilis argumentu u instrukce', elem.attrib['opcode'], file=sys.stderr)
-                exit(32)
-        if 'opcode' not in elem.attrib or not 'order' in elem.attrib or len(elem.attrib) != 2:
-            print('U instrukce nejsou vhodne atributy (chybi opcode, order ci existuje nejaky extra.', file=sys.stderr)
-        instruction = Instruction(elem.attrib['opcode'], elem.attrib['order'], arg1, arg2, arg3)
 
 # MAIN BODY
 src = ProcessSource()
-i = Instruction('WRite', 5, Argument('symb', 4), None, None)
