@@ -68,6 +68,71 @@ class Variable:
         self.type = val_type
 
 
+class Argument:
+    def __init__(self, a_type, value):
+        if a_type != 'symb' and a_type != 'var' and a_type != 'type' and a_type != 'label':
+            print('Neexistujici atribut type "', a_type, '" u argumentu.', sep='', file=sys.stderr)
+            exit(32)
+        self.type = a_type
+        # TODO pokud nevyresim pozdeji, zde kontrola podminek pro symb/var/type/label
+        self.value = value
+
+
+class Instruction:
+    def __init__(self, name, opcode, arg1, arg2, arg3):
+        name = name.upper()
+        self.name = name
+        self.opcode = opcode
+
+        # pole moznych instrukci a jejich operandu
+        possible = [
+          ['MOVE',       'var', 'symb',  None],
+          ['CREATEFRAME', None,  None,   None],
+          ['PUSHFRAME',   None,  None,   None],
+          ['POPFRAME',    None,  None,   None],
+          ['DEFVAR',     'var',  None,   None],
+          ['CALL',       'label', None,  None],
+          ['RETURN',      None,  None,   None],
+          ['PUSHS',      'symb', None,   None],
+          ['POPS',       'var',  None,   None],
+          ['ADD',        'var', 'symb', 'symb'],
+          ['SUB',        'var', 'symb', 'symb'],
+          ['MUL',        'var', 'symb', 'symb'],
+          ['IDIV',       'var', 'symb', 'symb'],
+          ['LG',         'var', 'symb', 'symb'],
+          ['GT',         'var', 'symb', 'symb'],
+          ['EQ',         'var', 'symb', 'symb'],
+          ['AND',        'var', 'symb', 'symb'],
+          ['OR',         'var', 'symb', 'symb'],
+          ['NOT',        'var', 'symb',  None],
+          ['INT2CHAR',   'var', 'symb',  None],
+          ['STRI2INT',   'var', 'symb', 'symb'],
+          ['READ',       'var', 'type',  None],
+          ['WRITE',      'symb', None,   None],
+          ['CONCAT',     'var', 'symb', 'symb'],
+          ['STRLEN',     'var', 'symb',  None],
+          ['GETCHAR',    'var', 'symb', 'symb'],
+          ['SETCHAR',    'var', 'symb', 'symb'],
+          ['TYPE',       'var', 'symb',  None],
+          ['LABEL',      'label', None,  None],
+          ['JUMP',       'label', None,  None],
+          ['JUMPIFEQ',   'label', 'symb', 'symb'],
+          ['JUMPIFNEQ',  'label', 'symb', 'symb'],
+          ['EXIT',       'symb',  None,   None],
+          ['DPRINT',     'symb',  None,   None],
+          ['BREAK',       None,   None,   None]]
+
+        valid = False
+        for poss, a1, a2, a3 in possible:
+            if poss == name:
+                valid = True
+                break
+
+        if not valid:
+            print('Neznama instrukce"', name, '".', sep='', file=sys.stderr)
+            exit(32)
+
+
 class Frame:
     def __init__(self):
         self.n_var = 0
@@ -125,7 +190,17 @@ class ProcessSource:
             print('Program nema pozadovany atribut language "IPPcode20".', file=sys.stderr)
             exit(32)
 
+        self.ins = []
+        for i in self.root:
+            if i.tag != 'instruction':
+                print('Neznamy element s nazvem "', i.tag, '", ocekavany element "instruction".',
+                      sep='', file=sys.stderr)
+                exit(32)
+            self.ins.append(i)
+
+        # self.ins.sort(key=lambda x: x.opcode)
+
 
 # MAIN BODY
 src = ProcessSource()
-
+i = Instruction('WRite', 5, None, None, None)
