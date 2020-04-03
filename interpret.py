@@ -3,14 +3,13 @@ import re
 import xml.etree.ElementTree as et
 import getopt
 
-int_source = ''
-int_input = ''
-
 
 # Funkce nacte argumenty, zpracuje, a do int_source a int_input vlozi z zadaneho zdroje obsah
-# Vystup: v int_source a int_input nahrany obsah souboru/stdin
+# Vystup: vraci int_source a int_input v tomto poradi, kde je bud prazdny retezec indikujici stdin nebo nazev
+# souboru, odkud se ma dany text brat
 def check_args():
-    global int_source, int_input
+    int_source = ''
+    int_input = ''
     opts = ['']
     file_error = False
     file_err_msg = ''
@@ -53,10 +52,45 @@ def check_args():
     if not int_source and not int_input:
         print('Minimalne jeden z parametru --input=file nebo --source=file musi byt zadan', file=sys.stderr)
         exit(10)
+    return int_source, int_input
 
 
-class ProcessXml:
+class Variable:
+    def __init__(self, name):
+        self.name = name
+        self.type = ''
+        self.value = ''
+
+    def add_value(self, value):
+        self.value = value
+
+    def add_type(self, val_type):
+        self.type = val_type
+
+
+class Frame:
     def __init__(self):
+        self.n_var = 0
+        self.vars = []
+
+    def add_var(self, var):
+        self.n_var += 1
+        self.vars.append(var)
+
+    # Vraci bool, zda-li var existuje, typ, a value ('' pokud nema typ/value)
+    def find_var(self, name):
+        for var in self.vars:
+            if var.name == name:
+                return True, var.type, var.value
+        return False, '', ''
+
+
+class ProcessSource:
+    # inicializace nacte XML soubor, zkontroluje "well-formed", korenovy element program a jeho atributy
+    # zpracuje
+    def __init__(self):
+        int_source, int_input = check_args()
+        self.at_end = False
         if not int_source:
             try:
                 self.source = et.parse(sys.stdin)
@@ -93,7 +127,6 @@ class ProcessXml:
 
 
 # MAIN BODY
-check_args()
-xml = ProcessXml()
-
-
+src = ProcessSource()
+print(src.root.tag)
+gf = Frame()
