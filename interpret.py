@@ -58,8 +58,8 @@ def check_args():
 class Variable:
     def __init__(self, name):
         self.name = name
-        self.type = ''
-        self.value = ''
+        self.type = None
+        self.value = None
 
     def add_value(self, value):
         self.value = value
@@ -79,10 +79,10 @@ class Argument:
 
 
 class Instruction:
-    def __init__(self, name, opcode, arg1, arg2, arg3):
+    def __init__(self, name, order, arg1, arg2, arg3):
         name = name.upper()
-        self.name = name
-        self.opcode = opcode
+        self.opcode = name
+        self.order = order
 
         # pole moznych instrukci a jejich operandu
         possible = [
@@ -122,10 +122,33 @@ class Instruction:
           ['DPRINT',     'symb',  None,   None],
           ['BREAK',       None,   None,   None]]
 
+        # uprava typu arg kvuli snazsimu porovnavani pozdeji
+        if arg1 is None:
+            arg1_type = None
+        else:
+            arg1_type = arg1.type
+        if arg2 is None:
+            arg2_type = None
+        else:
+            arg2_type = arg2.type
+        if arg3 is None:
+            arg3_type = None
+        else:
+            arg3_type = arg3.type
+
+        # cyklus najde jmeno instrukce v possible a overi typ argumentu, existuji-li
         valid = False
         for poss, a1, a2, a3 in possible:
             if poss == name:
                 valid = True
+                if a1 != arg1_type or a2 != arg2_type or a3 != arg3_type:
+                    print('U instrukce "', poss, '" nesedi typ argumentu. Ocekavany "', a1, '/', a2, '/', a3,
+                          '" ale obdrzeny byly "', arg1_type, '/', arg2_type, '/', arg3_type,
+                          '".', sep='', file=sys.stderr)
+                    exit(32)
+                self.arg1 = arg1
+                self.arg2 = arg2
+                self.arg3 = arg3
                 break
 
         if not valid:
@@ -191,16 +214,27 @@ class ProcessSource:
             exit(32)
 
         self.ins = []
-        for i in self.root:
-            if i.tag != 'instruction':
-                print('Neznamy element s nazvem "', i.tag, '", ocekavany element "instruction".',
+        for inst in self.root:
+            if inst.tag != 'instruction':
+                print('Neznamy element s nazvem "', inst.tag, '", ocekavany element "instruction".',
                       sep='', file=sys.stderr)
                 exit(32)
-            self.ins.append(i)
+            self.get_instruction(inst)
+            self.ins.append(inst)
 
         # self.ins.sort(key=lambda x: x.opcode)
+
+    def get_instruction(self, elem):
+        count = 0
+        for arg in elem:
+            if arg.tag != 'arg1' and arg.tag != 'arg2' and arg.tag != 'arg3':
+                print('Neocekavany element "', arg, '" nalezen, ocekavano arg1-3.', sep='', file=sys.stderr)
+                exit(32)
+            if len(arg.attrib) != 1 or not 'type' in arg.attrib:
+                print('Spatny pocet atributu argumentu v instrukci', elem.attrib['opcode'], 'nebo neslo o atribut "type".', file=sys.stderr)
+                exit(32)
 
 
 # MAIN BODY
 src = ProcessSource()
-i = Instruction('WRite', 5, None, None, None)
+i = Instruction('WRite', 5, Argument('symb', 4), None, None)
