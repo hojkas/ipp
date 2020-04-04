@@ -56,31 +56,43 @@ def check_args():
 
 
 def check_int(integer):
-    pass
+    if re.search(r'^([-+])?(\d)+$', integer):
+        return True
+    return False
 
 
 def check_string(string):
-    pass
+    if re.search(r'^(([^#\\\s]|\\\d{3})+)$', string):
+        return True
+    return False
 
 
 def check_bool(boolean):
-    pass
+    if boolean == 'true' or boolean == 'false':
+        return True
+    return False
 
 
 def check_nil(nil):
-    pass
+    if nil == 'nil':
+        return True
+    return False
 
 
 def check_label(label):
-    pass
+    if re.search(r'^[a-zA-Z_\-$&%*!?][a-zA-Z0-9_\-$&%*!?]*$', label):
+        return True
+    return False
 
 
 def check_var(var):
-    pass
+    if re.search(r'^(G|T|L)F@[a-zA-Z_\-$&%*!?][a-zA-Z0-9_\-$&%*!?]*$', var):
+        return True
+    return False
 
 
 def check_symb(symb):
-    pass
+    return check_var(symb) or check_nil(symb) or check_bool(symb) or check_int(symb) or check_string(symb)
 
 
 class Variable:
@@ -310,130 +322,162 @@ class ProcessSource:
         self.gf = Frame()
 
     def move_func(self):
+        # MOVE <var> <symb>
         # TODO
         pass
 
     def createframe_func(self):
+        # CREATEFRAME
         # TODO
         pass
 
     def pushframe_func(self):
+        # PUSHFRAME
         # TODO
         pass
 
     def popframe_func(self):
+        # POPFRAME
         # TODO
         pass
 
     def defvar_func(self):
+        # DEFVAR <var>
         # TODO
         pass
 
     def call_func(self):
+        # CALL <label>
         # TODO
         pass
 
     def return_func(self):
+        # RETURN
         # TODO
         pass
 
     def pushs_func(self):
+        # PUSHS <symb>
         # TODO
         pass
 
     def pops_func(self):
+        # POPS <var>
         # TODO
         pass
 
     def add_func(self):
+        # ADD <var> <symb> <symb>
         # TODO
         pass
 
     def sub_func(self):
+        # SUB <var> <symb> <symb>
         # TODO
         pass
 
     def mul_func(self):
+        # MUL <var> <symb> <symb>
         # TODO
         pass
 
     def idiv_func(self):
+        # IDIV <var> <symb> <symb>
         # TODO
         pass
 
     def lt_func(self):
+        # LT <var> <symb> <symb>
         # TODO
         pass
 
     def gt_func(self):
+        # GT <var> <symb> <symb>
         # TODO
         pass
 
     def eq_func(self):
+        # EQ <var> <symb> <symb>
         # TODO
         pass
 
     def and_func(self):
+        # AND <var> <symb> <symb>
         # TODO
         pass
 
     def or_func(self):
+        # OR <var> <symb> <symb>
         # TODO
         pass
 
     def not_func(self):
+        # NOT <var> <symb>
         # TODO
         pass
 
     def int2char_func(self):
+        # INT2CHAR <var> <symb>
         # TODO
         pass
 
     def stri2int_func(self):
+        # STRI2INT <var> <symb> <symb>
         # TODO
         pass
 
     def read_func(self):
+        # READ <var> <type>
         # TODO
         pass
 
     def write_func(self):
+        # WRITE <symb>
         # TODO
         pass
 
     def concat_func(self):
+        # CONCAT <var> <symb> <symb>
         # TODO
         pass
 
     def strlen_func(self):
+        # STRLEN <var> <symb>
         # TODO
         pass
 
     def getchar_func(self):
+        # GETCHAR <var> <symb> <symb>
         # TODO
         pass
 
     def setchar_func(self):
+        # SETCHAR <var> <symb> <symb>
         # TODO
         pass
 
     def type_func(self):
+        # TYPE <var> <symb>
         # TODO
         pass
 
     def label_func(self):
+        # LABEL <label>
         # TODO
         pass
 
     def jump_func(self):
+        # JUMP <label>
         # TODO
         pass
 
     def jumpifeq_func(self):
+        # JUMPIFEQ <label> <symb> <symb>
         # TODO
         pass
 
     def jumpifneq_func(self):
+        # JUMIFNEQ <label> <symb> <symb>
         # TODO
         pass
 
@@ -442,10 +486,12 @@ class ProcessSource:
         pass
 
     def dprint_func(self):
+        # DPRINT <symb>
         # TODO
         pass
 
     def break_func(self):
+        # BREAK
         # TODO
         pass
 
@@ -492,6 +538,9 @@ def write_all_ins(inss):
 # MAIN BODY
 src = ProcessSource()
 # write_all_ins(src.ins)
+
 while src.do_next_ins():
-    print('Did:', src.cur_ins.opcode)
+    # TODO delete
+    # print('Did:', src.cur_ins.opcode)
     pass
+
