@@ -62,7 +62,7 @@ def check_int(integer):
 
 
 def check_string(string):
-    if re.search(r'^(([^#\\\s]|\\\d{3})+)$', string):
+    if re.search(r'^^(([^#\\\s]|\\\d{3})*)?$', string):
         return True
     return False
 
@@ -220,11 +220,11 @@ class Frame:
     def debug_frame(self):
         res = 'Obsah: (total: ' + str(self.n_var) + ') (name/type/value)'
         for var in self.vars:
-            if not var.value:
+            if var.value is None:
                 var_value = 'None'
             else:
                 var_value = var.value
-            if not var.type:
+            if var.type is None:
                 var_type = 'None'
             else:
                 var_type = var.type
@@ -249,12 +249,16 @@ def get_instruction(elem):
                   'nebo neslo o atribut "type".', file=sys.stderr)
             exit(32)
         count += 1
+        if arg.text is None:
+            new_text = ''
+        else:
+            new_text = arg.text
         if count == 1:
-            arg1 = Argument(arg.attrib['type'], arg.text)
+            arg1 = Argument(arg.attrib['type'], new_text)
         elif count == 2:
-            arg2 = Argument(arg.attrib['type'], arg.text)
+            arg2 = Argument(arg.attrib['type'], new_text)
         elif count == 3:
-            arg2 = Argument(arg.attrib['type'], arg.text)
+            arg3 = Argument(arg.attrib['type'], new_text)
         else:
             print('Prilis argumentu u instrukce', elem.attrib['opcode'], file=sys.stderr)
             exit(32)
@@ -347,22 +351,23 @@ class ProcessSource:
 
         # inicializuje iterator pres list instrukci
         self.ins_iter = iter(self.ins)
-        self.was_jump = False
         self.cur_ins = None
 
-        # projede seznam instrukci pred programem a spusti kazdou funkci pro instrukci,
-        # kde se zkontroluje pocet argumentu a odpovidajici typ (bez spravneho typu uvnitr promenne)
-        # a resestuje iterator
+        # vytvori global frame
+        self.gf = Frame()
+
         self.pre_run = True
         self.ins_done = 0
+
+    # projede seznam instrukci pred programem a spusti kazdou funkci pro instrukci,
+    # kde se zkontroluje pocet argumentu a odpovidajici typ (bez spravneho typu uvnitr promenne)
+    # a resestuje iterator
+    def do_pre_run(self):
         while self.do_next_ins():
             pass
         self.pre_run = False
         self.ins_iter = iter(self.ins)
         self.ins_done = 0
-
-        # vytvori global frame
-        self.gf = Frame()
 
     # extrahuje ramec, najde v nem var, spadne s odpovidajicim kodem pokud var/ramec neexistuje
     def get_var_value_from_arg(self, arg):
@@ -374,16 +379,16 @@ class ProcessSource:
             if not found:
                 print('Promenna', var, 'v ramci GF neexistuje.', file=sys.stderr)
                 exit(54)
-            if not value:
+            if value is None:
                 print('Promenna', var, 'nema hodnotu.', file=sys.stderr)
                 exit(56)
             return value
         elif re.search(r'^TF@', var):
             # TODO az budou ramce, a muze to existovat?
-            return None
+            exit_neumim_ramce()
         elif re.search(r'^LF@', var):
             # TODO az budou ramce
-            return None
+            exit_neumim_ramce()
         else:
             print('Neznamy ramec promenne', var, '+ tato chyba by nemela nastat.', file=sys.stderr)
             exit(55)
@@ -395,12 +400,59 @@ class ProcessSource:
         else:
             return arg.value
 
+    def check_cur_args(self, t1=None, t2=None, t3=None):
+        n = sum(x is not None for x in [t1, t2, t3])
+        # zkontroluje pocet argumentu
+        if n == 0:
+            if self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
+                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 0)
+            return
+        elif n == 1:
+            if not self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
+                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 1)
+        elif n == 2:
+            if not self.cur_ins.arg1 or not self.cur_ins.arg2 or self.cur_ins.arg3:
+                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 2)
+        elif n == 3:
+            if not self.cur_ins.arg1 or not self.cur_ins.arg2 or not self.cur_ins.arg3:
+                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 3)
+
+        t = []
+        a = []
+        if n == 1:
+            t = [t1]
+            a = [self.cur_ins.arg1]
+        if n == 2:
+            t = [t1, t2]
+            a = [self.cur_ins.arg1, self.cur_ins.arg2]
+        if n == 3:
+            t = [t1, t2, t3]
+            a = [self.cur_ins.arg1, self.cur_ins.arg2, self.cur_ins.arg3]
+
+        for i in range(0, n):
+            if t[i] == '<symb>':
+                if not check_symb(a[i].value):
+                    exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
+            elif t[i] == '<type>':
+                if not a[i].value == 'bool' and not a[i].value == 'int' and not a[i].value == 'string':
+                    exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
+            elif t[i] == '<var>':
+                if not check_var(a[i].value):
+                    exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
+            elif t[i] == '<label>':
+                if not check_label(a[i].value):
+                    exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
+            else:
+                print('Pepega something wrong', t[i], a[i].value, file=sys.stderr)
+                exit(99)
+
     def move_func(self):
         # MOVE <var> <symb>
         # TODO
         if self.pre_run:
             # cast, ktera se provede pri kontrole syntaxe pred zacatkem interpretace
             # u kazde funkce, zahrnuje napr. kontrolu poctu argumentu a spravny typ symb/var/label obsahu
+            self.check_cur_args('<var>', '<symb>')
             return
 
         # cast, ktera se provede pri samotne interpretaci
@@ -409,8 +461,7 @@ class ProcessSource:
     def createframe_func(self):
         # CREATEFRAME
         if self.pre_run:
-            if self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
-                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 0)
+            self.check_cur_args()
             return
 
         # TODO
@@ -419,8 +470,7 @@ class ProcessSource:
     def pushframe_func(self):
         # PUSHFRAME
         if self.pre_run:
-            if self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
-                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 0)
+            self.check_cur_args()
             return
 
         # TODO
@@ -429,8 +479,7 @@ class ProcessSource:
     def popframe_func(self):
         # POPFRAME
         if self.pre_run:
-            if self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
-                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 0)
+            self.check_cur_args()
             return
 
         # TODO
@@ -439,11 +488,7 @@ class ProcessSource:
     def defvar_func(self):
         # DEFVAR <var>
         if self.pre_run:
-            if not self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
-                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 1)
-            if not check_var(self.cur_ins.arg1.value) or self.cur_ins.arg1.type != 'var':
-                exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, '<var>', self.cur_ins.arg1.type,
-                                  self.cur_ins.arg1.value)
+            self.check_cur_args('<var>')
             return
 
         frame, name = self.cur_ins.arg1.value.split('@')
@@ -466,13 +511,16 @@ class ProcessSource:
     def call_func(self):
         # CALL <label>
         # TODO
+        if self.pre_run:
+            self.check_cur_args('<label>')
+            return
+
         pass
 
     def return_func(self):
         # RETURN
         if self.pre_run:
-            if self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
-                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 0)
+            self.check_cur_args()
             return
 
         # TODO
@@ -482,6 +530,7 @@ class ProcessSource:
         # PUSHS <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<symb>')
             return
 
         pass
@@ -666,6 +715,7 @@ class ProcessSource:
         # JUMPIFEQ <label> <symb> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<label>', '<symb>', '<symb>')
             return
 
         pass
@@ -689,11 +739,12 @@ class ProcessSource:
     def dprint_func(self):
         # DPRINT <symb>
         if self.pre_run:
-            if not self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
+            self.check_cur_args('<symb>')
+            '''if not self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
                 exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 1)
             if not check_symb(self.cur_ins.arg1.value):
                 exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, '<symb>', self.cur_ins.arg1.type,
-                                  self.cur_ins.arg1.value)
+                                  self.cur_ins.arg1.value)'''
             return
 
         print(self.cur_ins.arg1.type, ':', self.get_symb_value_from_arg(self.cur_ins.arg1), file=sys.stderr)
@@ -735,7 +786,10 @@ class ProcessSource:
 # temp funkce na vypisy
 # TODO odstranit
 def write_arg(arg):
-    print(arg.type, '-', arg.value)
+    if arg.value == '':
+        print(arg.type, '-', 'empty')
+    else:
+        print(arg.type, '-', arg.value)
 
 
 def write_ins(ins):
@@ -756,8 +810,11 @@ def write_all_ins(inss):
 
 
 # MAIN BODY
+
 src = ProcessSource()
 # write_all_ins(src.ins)
+src.do_pre_run()
+
 
 while src.do_next_ins():
     # TODO delete
