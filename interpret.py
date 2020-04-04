@@ -318,32 +318,59 @@ class ProcessSource:
         self.was_jump = False
         self.cur_ins = None
 
+        # projede seznam instrukci pred programem a spusti kazdou funkci pro instrukci,
+        # kde se zkontroluje pocet argumentu a odpovidajici typ (bez spravneho typu uvnitr promenne)
+        # a resestuje iterator
+        self.pre_run = True
+        while self.do_next_ins():
+            pass
+        self.pre_run = False
+        self.ins_iter = iter(self.ins)
+
         # vytvori global frame
         self.gf = Frame()
 
     def move_func(self):
         # MOVE <var> <symb>
         # TODO
+        if self.pre_run:
+            # cast, ktera se provede pri kontrole syntaxe pred zacatkem interpretace
+            # u kazde funkce, zahrnuje napr. kontrolu poctu argumentu a spravny typ symb/var/label obsahu
+            return
+
+        # cast, ktera se provede pri samotne interpretaci
         pass
 
     def createframe_func(self):
         # CREATEFRAME
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def pushframe_func(self):
         # PUSHFRAME
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def popframe_func(self):
         # POPFRAME
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def defvar_func(self):
         # DEFVAR <var>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def call_func(self):
@@ -353,146 +380,233 @@ class ProcessSource:
 
     def return_func(self):
         # RETURN
-        # TODO
+        #
+        if self.pre_run:
+            return
+
         pass
 
     def pushs_func(self):
         # PUSHS <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def pops_func(self):
         # POPS <var>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def add_func(self):
         # ADD <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def sub_func(self):
         # SUB <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def mul_func(self):
         # MUL <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def idiv_func(self):
         # IDIV <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def lt_func(self):
         # LT <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def gt_func(self):
         # GT <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def eq_func(self):
         # EQ <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def and_func(self):
         # AND <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def or_func(self):
         # OR <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def not_func(self):
         # NOT <var> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def int2char_func(self):
         # INT2CHAR <var> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def stri2int_func(self):
         # STRI2INT <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def read_func(self):
         # READ <var> <type>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def write_func(self):
         # WRITE <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def concat_func(self):
         # CONCAT <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def strlen_func(self):
         # STRLEN <var> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def getchar_func(self):
         # GETCHAR <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def setchar_func(self):
         # SETCHAR <var> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def type_func(self):
         # TYPE <var> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def label_func(self):
         # LABEL <label>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def jump_func(self):
         # JUMP <label>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def jumpifeq_func(self):
         # JUMPIFEQ <label> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def jumpifneq_func(self):
         # JUMIFNEQ <label> <symb> <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def exit_func(self):
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def dprint_func(self):
         # DPRINT <symb>
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def break_func(self):
         # BREAK
         # TODO
+        if self.pre_run:
+            return
+
         pass
 
     def do_next_ins(self):
