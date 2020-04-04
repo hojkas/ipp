@@ -35,4 +35,8 @@
  <instruction order="10" opcode="LABEL">
   <arg1 type="label">end</arg1>
  </instruction>
+ <instruction order="11" opcode="BREAK"/>
+ <instruction order="12" opcode="DPRINT">
+  <arg1 type="string">ahoj</arg1>
+ </instruction>
 </program>

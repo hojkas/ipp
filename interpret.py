@@ -95,6 +95,24 @@ def check_symb(symb):
     return check_var(symb) or check_nil(symb) or check_bool(symb) or check_int(symb) or check_string(symb)
 
 
+def exit_msg_num_args(name, order, right):
+    print('Spatny pocet argumentu u instrukce "', name, '" (order: ', order, '), ocekavano ', right,
+          '.', sep='', file=sys.stderr)
+    exit(32)
+
+
+def exit_msg_type_arg(name, order, expected, got_type, got_value):
+    print('Argument [', got_type, '/', got_value, '] instrukce "', name, '" (order: ', order, ') nesplnuje pozadavky ',
+          expected, '.', sep='', file=sys.stderr)
+    exit(32)
+
+
+# TODO delete
+def exit_neumim_ramce():
+    print('Jsem baby program, jeste neumim ramce, pardon.', file=sys.stderr)
+    exit(99)
+
+
 class Variable:
     def __init__(self, name):
         self.name = name
@@ -178,12 +196,12 @@ class Frame:
         self.n_var += 1
         self.vars.append(var)
 
-    # Vraci bool, zda-li var existuje, typ, a value ('' pokud nema typ/value)
+    # Vraci bool, zda-li var existuje, typ, a value (None pokud nema typ/value)
     def find_var(self, name):
         for var in self.vars:
             if var.name == name:
                 return True, var.type, var.value
-        return False, '', ''
+        return False, None, None
 
     def change_type(self, name, new_type):
         for var in self.vars:
@@ -198,6 +216,20 @@ class Frame:
                 var.value = new_value
                 return True
         return False
+
+    def debug_frame(self):
+        res = 'Obsah: (total: ' + str(self.n_var) + ') (name/type/value)'
+        for var in self.vars:
+            if not var.value:
+                var_value = 'None'
+            else:
+                var_value = var.value
+            if not var.type:
+                var_type = 'None'
+            else:
+                var_type = var.type
+            res += '\n  ' + var.name + '/' + var_type + '/' + var_value
+        return res
 
 
 # Vytvori z predaneho elementu instrukce objekt instruction s navazanymi objekty argument
@@ -322,13 +354,46 @@ class ProcessSource:
         # kde se zkontroluje pocet argumentu a odpovidajici typ (bez spravneho typu uvnitr promenne)
         # a resestuje iterator
         self.pre_run = True
+        self.ins_done = 0
         while self.do_next_ins():
             pass
         self.pre_run = False
         self.ins_iter = iter(self.ins)
+        self.ins_done = 0
 
         # vytvori global frame
         self.gf = Frame()
+
+    # extrahuje ramec, najde v nem var, spadne s odpovidajicim kodem pokud var/ramec neexistuje
+    def get_var_value_from_arg(self, arg):
+        var = arg.value
+        if re.search(r'^GF@', var):
+            # prohleda gf
+            searched = var.split('@')[1]
+            found, v_type, value = self.gf.find_var(searched)
+            if not found:
+                print('Promenna', var, 'v ramci GF neexistuje.', file=sys.stderr)
+                exit(54)
+            if not value:
+                print('Promenna', var, 'nema hodnotu.', file=sys.stderr)
+                exit(56)
+            return value
+        elif re.search(r'^TF@', var):
+            # TODO az budou ramce, a muze to existovat?
+            return None
+        elif re.search(r'^LF@', var):
+            # TODO az budou ramce
+            return None
+        else:
+            print('Neznamy ramec promenne', var, '+ tato chyba by nemela nastat.', file=sys.stderr)
+            exit(55)
+
+    # extrahuje hodnotu symb z argumentu, v pripade var vola funci get_var_value a pada na danych chybach
+    def get_symb_value_from_arg(self, arg):
+        if arg.type == 'var':
+            return self.get_var_value_from_arg(arg)
+        else:
+            return arg.value
 
     def move_func(self):
         # MOVE <var> <symb>
@@ -343,35 +408,60 @@ class ProcessSource:
 
     def createframe_func(self):
         # CREATEFRAME
-        # TODO
         if self.pre_run:
+            if self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
+                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 0)
             return
 
+        # TODO
         pass
 
     def pushframe_func(self):
         # PUSHFRAME
-        # TODO
         if self.pre_run:
+            if self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
+                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 0)
             return
 
+        # TODO
         pass
 
     def popframe_func(self):
         # POPFRAME
-        # TODO
         if self.pre_run:
+            if self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
+                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 0)
             return
 
+        # TODO
         pass
 
     def defvar_func(self):
         # DEFVAR <var>
-        # TODO
         if self.pre_run:
+            if not self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
+                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 1)
+            if not check_var(self.cur_ins.arg1.value) or self.cur_ins.arg1.type != 'var':
+                exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, '<var>', self.cur_ins.arg1.type,
+                                  self.cur_ins.arg1.value)
             return
 
-        pass
+        frame, name = self.cur_ins.arg1.value.split('@')
+        if frame == "GF":
+            res = self.gf.find_var(name)
+            if res[0]:
+                print('Promenna ', name, 'jiz v GF existuje.')
+                exit(52)
+            self.gf.add_var(Variable(name))
+        elif frame == "TF":
+            # TODO jak budou ramce... a muze toto existovat?
+            exit_neumim_ramce()
+        elif frame == "LF":
+            # TODO jak budou ramce
+            exit_neumim_ramce()
+        else:
+            print('Neznamy ramec', frame, 'a sem by se to pravdepodobne nemelo dostat.', file=sys.stderr)
+            exit(32)
 
     def call_func(self):
         # CALL <label>
@@ -380,10 +470,12 @@ class ProcessSource:
 
     def return_func(self):
         # RETURN
-        #
         if self.pre_run:
+            if self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
+                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 0)
             return
 
+        # TODO
         pass
 
     def pushs_func(self):
@@ -587,6 +679,7 @@ class ProcessSource:
         pass
 
     def exit_func(self):
+        # EXIT <symb>
         # TODO
         if self.pre_run:
             return
@@ -595,19 +688,31 @@ class ProcessSource:
 
     def dprint_func(self):
         # DPRINT <symb>
-        # TODO
         if self.pre_run:
+            if not self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
+                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 1)
+            if not check_symb(self.cur_ins.arg1.value):
+                exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, '<symb>', self.cur_ins.arg1.type,
+                                  self.cur_ins.arg1.value)
             return
 
-        pass
+        print(self.cur_ins.arg1.type, ':', self.get_symb_value_from_arg(self.cur_ins.arg1), file=sys.stderr)
 
     def break_func(self):
         # BREAK
-        # TODO
         if self.pre_run:
+            if self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
+                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 0)
             return
 
-        pass
+        print('Stav interpretu:\n----------------\nAktualni instrukce: ', self.cur_ins.opcode, ' (order: ',
+              self.cur_ins.order, ')\nPocet zpracovanych instrukci (bez teto): ', self.ins_done,
+              sep='', file=sys.stderr)
+
+        print('Ramec GF:')
+        print(self.gf.debug_frame())
+
+        # TODO pridat debug ostatnich frames, az budou hotove
 
     def do_next_ins(self):
         try:
@@ -619,9 +724,10 @@ class ProcessSource:
             # spusti funkci dane instrukce, naming convention name_func()
             func = 'self.' + self.cur_ins.opcode.lower() + '_func()'
             eval(func)
-        except NameError:
-            print('Invalidní opcode "', self.cur_ins.opcode, '" nebo neni funkce z nejakeho duvodu jeste'
-                                                             ' naimplementovana.', sep='', file=sys.stderr)
+            self.ins_done += 1
+        except NameError as err:
+            print(err, '\nInvalidní opcode "', self.cur_ins.opcode, '" nebo neni funkce z nejakeho duvodu jeste'
+                                                                    ' naimplementovana.', sep='', file=sys.stderr)
             exit(32)
         return True
 
