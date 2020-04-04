@@ -31,15 +31,15 @@ def check_args():
             exit(0)
         if option == '--source':
             try:
-                with open(argument) as f:
+                with open(argument):
                     pass
                 int_source = argument
-            except IOError as err:
+            except IOError:
                 file_err_msg += 'Nepodarilo se otevrit soubor "' + argument + '".\n'
                 file_error = True
         if option == '--input':
             try:
-                with open(argument) as f:
+                with open(argument):
                     pass
                 int_input = argument
             except IOError:
@@ -53,6 +53,34 @@ def check_args():
         print('Minimalne jeden z parametru --input=file nebo --source=file musi byt zadan', file=sys.stderr)
         exit(10)
     return int_source, int_input
+
+
+def check_int(integer):
+    pass
+
+
+def check_string(string):
+    pass
+
+
+def check_bool(boolean):
+    pass
+
+
+def check_nil(nil):
+    pass
+
+
+def check_label(label):
+    pass
+
+
+def check_var(var):
+    pass
+
+
+def check_symb(symb):
+    pass
 
 
 class Variable:
@@ -70,7 +98,8 @@ class Variable:
 
 class Argument:
     def __init__(self, a_type, value):
-        if a_type != 'int' and a_type != 'string' and a_type != 'bool' and a_type != 'nil' and a_type != 'var' and a_type != 'type' and a_type != 'label':
+        if (a_type != 'int' and a_type != 'string' and a_type != 'bool' and a_type != 'nil' and a_type != 'var'
+                and a_type != 'type' and a_type != 'label'):
             print('Neexistujici atribut type "', a_type, '" u argumentu.', sep='', file=sys.stderr)
             exit(32)
         self.type = a_type
@@ -128,7 +157,6 @@ class Instruction:
         '''
 
 
-
 class Frame:
     def __init__(self):
         self.n_var = 0
@@ -144,6 +172,20 @@ class Frame:
             if var.name == name:
                 return True, var.type, var.value
         return False, '', ''
+
+    def change_type(self, name, new_type):
+        for var in self.vars:
+            if var.name == name:
+                var.type = new_type
+                return True
+        return False
+
+    def change_value(self, name, new_value):
+        for var in self.vars:
+            if var.name == name:
+                var.value = new_value
+                return True
+        return False
 
 
 # Vytvori z predaneho elementu instrukce objekt instruction s navazanymi objekty argument
@@ -195,15 +237,15 @@ def get_instruction(elem):
         exit(32)
 
     # samotna tvorba objektu instrukce
-    return Instruction(opcode, elem.attrib['order'], arg1, arg2, arg3)
+    return Instruction(opcode, int(elem.attrib['order']), arg1, arg2, arg3)
 
 
 class ProcessSource:
     # inicializace nacte XML soubor, zkontroluje "well-formed", korenovy element program a jeho atributy
-    # zpracuje
+    # zpracuje instrukce do self.ins, zalozi iterator pres ne
+    # vytvori self.gf jako global frame
     def __init__(self):
         int_source, int_input = check_args()
-        self.at_end = False
         if not int_source:
             try:
                 self.source = et.parse(sys.stdin)
@@ -245,8 +287,211 @@ class ProcessSource:
                       sep='', file=sys.stderr)
                 exit(32)
             self.ins.append(get_instruction(inst))
-        # self.ins.sort(key=lambda x: x.opcode)
+        # seradi list objektu instruction podle order hodnoty
+        self.ins.sort(key=lambda x: x.order)
+
+        # projede ins podle hodnoty order, zkontroluje, jestli nejsou hodnoty < 1 nebo duplicitni
+        if self.ins[0].order < 1:
+            print('Order atribut instrukce nesmi zacinat cislem mensim nez 1.', file=sys.stderr)
+            exit(32)
+        last = self.ins[0].order
+        for one in self.ins[1:]:
+            if last == one.order:
+                print('Opakujici se order', one.order, 'mezi instrukcemi.', file=sys.stderr)
+                exit(32)
+            last = one.order
+
+        # inicializuje iterator pres list instrukci
+        self.ins_iter = iter(self.ins)
+        self.was_jump = False
+        self.cur_ins = None
+
+        # vytvori global frame
+        self.gf = Frame()
+
+    def move_func(self):
+        # TODO
+        pass
+
+    def createframe_func(self):
+        # TODO
+        pass
+
+    def pushframe_func(self):
+        # TODO
+        pass
+
+    def popframe_func(self):
+        # TODO
+        pass
+
+    def defvar_func(self):
+        # TODO
+        pass
+
+    def call_func(self):
+        # TODO
+        pass
+
+    def return_func(self):
+        # TODO
+        pass
+
+    def pushs_func(self):
+        # TODO
+        pass
+
+    def pops_func(self):
+        # TODO
+        pass
+
+    def add_func(self):
+        # TODO
+        pass
+
+    def sub_func(self):
+        # TODO
+        pass
+
+    def mul_func(self):
+        # TODO
+        pass
+
+    def idiv_func(self):
+        # TODO
+        pass
+
+    def lt_func(self):
+        # TODO
+        pass
+
+    def gt_func(self):
+        # TODO
+        pass
+
+    def eq_func(self):
+        # TODO
+        pass
+
+    def and_func(self):
+        # TODO
+        pass
+
+    def or_func(self):
+        # TODO
+        pass
+
+    def not_func(self):
+        # TODO
+        pass
+
+    def int2char_func(self):
+        # TODO
+        pass
+
+    def stri2int_func(self):
+        # TODO
+        pass
+
+    def read_func(self):
+        # TODO
+        pass
+
+    def write_func(self):
+        # TODO
+        pass
+
+    def concat_func(self):
+        # TODO
+        pass
+
+    def strlen_func(self):
+        # TODO
+        pass
+
+    def getchar_func(self):
+        # TODO
+        pass
+
+    def setchar_func(self):
+        # TODO
+        pass
+
+    def type_func(self):
+        # TODO
+        pass
+
+    def label_func(self):
+        # TODO
+        pass
+
+    def jump_func(self):
+        # TODO
+        pass
+
+    def jumpifeq_func(self):
+        # TODO
+        pass
+
+    def jumpifneq_func(self):
+        # TODO
+        pass
+
+    def exit_func(self):
+        # TODO
+        pass
+
+    def dprint_func(self):
+        # TODO
+        pass
+
+    def break_func(self):
+        # TODO
+        pass
+
+    def do_next_ins(self):
+        try:
+            self.cur_ins = next(self.ins_iter)
+        except StopIteration:
+            return False
+
+        try:
+            # spusti funkci dane instrukce, naming convention name_func()
+            func = 'self.' + self.cur_ins.opcode.lower() + '_func()'
+            eval(func)
+        except NameError:
+            print('Invalidní opcode "', self.cur_ins.opcode, '" nebo neni funkce z nejakeho duvodu jeste'
+                                                             ' naimplementovana.', sep='', file=sys.stderr)
+            exit(32)
+        return True
+
+
+# temp funkce na vypisy
+# TODO odstranit
+def write_arg(arg):
+    print(arg.type, '-', arg.value)
+
+
+def write_ins(ins):
+    print('Instruction: ', ins.opcode, ' (', ins.order, ')', sep='')
+    if ins.arg1:
+        write_arg(ins.arg1)
+    if ins.arg2:
+        write_arg(ins.arg2)
+    if ins.arg3:
+        write_arg(ins.arg3)
+
+
+def write_all_ins(inss):
+    print('--- INS BEGIN ---')
+    for ins in inss:
+        write_ins(ins)
+    print('--- INS END ---')
 
 
 # MAIN BODY
 src = ProcessSource()
+# write_all_ins(src.ins)
+while src.do_next_ins():
+    print('Did:', src.cur_ins.opcode)
+    pass
