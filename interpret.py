@@ -149,7 +149,6 @@ class Argument:
             print('Neexistujici atribut type "', a_type, '" u argumentu.', sep='', file=sys.stderr)
             exit(32)
         self.type = a_type
-        # TODO pokud nevyresim pozdeji, zde kontrola podminek pro symb/var/type/label
         self.value = value
 
 
@@ -160,47 +159,6 @@ class Instruction:
         self.arg1 = arg1
         self.arg2 = arg2
         self.arg3 = arg3
-
-        # TODO delete, existuje jen kdybych zjistila, ze je to tu treba checkovat
-        # pole moznych instrukci a jejich operandu
-        '''
-        possible = [
-          ['MOVE',       'var', 'symb',  None],
-          ['CREATEFRAME', None,  None,   None],
-          ['PUSHFRAME',   None,  None,   None],
-          ['POPFRAME',    None,  None,   None],
-          ['DEFVAR',     'var',  None,   None],
-          ['CALL',       'label', None,  None],
-          ['RETURN',      None,  None,   None],
-          ['PUSHS',      'symb', None,   None],
-          ['POPS',       'var',  None,   None],
-          ['ADD',        'var', 'symb', 'symb'],
-          ['SUB',        'var', 'symb', 'symb'],
-          ['MUL',        'var', 'symb', 'symb'],
-          ['IDIV',       'var', 'symb', 'symb'],
-          ['LG',         'var', 'symb', 'symb'],
-          ['GT',         'var', 'symb', 'symb'],
-          ['EQ',         'var', 'symb', 'symb'],
-          ['AND',        'var', 'symb', 'symb'],
-          ['OR',         'var', 'symb', 'symb'],
-          ['NOT',        'var', 'symb',  None],
-          ['INT2CHAR',   'var', 'symb',  None],
-          ['STRI2INT',   'var', 'symb', 'symb'],
-          ['READ',       'var', 'type',  None],
-          ['WRITE',      'symb', None,   None],
-          ['CONCAT',     'var', 'symb', 'symb'],
-          ['STRLEN',     'var', 'symb',  None],
-          ['GETCHAR',    'var', 'symb', 'symb'],
-          ['SETCHAR',    'var', 'symb', 'symb'],
-          ['TYPE',       'var', 'symb',  None],
-          ['LABEL',      'label', None,  None],
-          ['JUMP',       'label', None,  None],
-          ['JUMPIFEQ',   'label', 'symb', 'symb'],
-          ['JUMPIFNEQ',  'label', 'symb', 'symb'],
-          ['EXIT',       'symb',  None,   None],
-          ['DPRINT',     'symb',  None,   None],
-          ['BREAK',       None,   None,   None]]
-        '''
 
 
 class Frame:
@@ -445,7 +403,12 @@ class ProcessSource:
         if arg.type == 'var':
             return self.get_var_type_value_from_arg(arg)
         else:
+            '''if arg.type == 'int':
+                return arg.type, int(arg.value)
+            else:
+                return arg.type, arg.value'''
             return arg.type, arg.value
+            # TODO chce to resit int/string, not sure kde, par veci bude failovat
 
     def check_cur_args(self, t1=None, t2=None, t3=None):
         n = sum(x is not None for x in [t1, t2, t3])
@@ -478,7 +441,7 @@ class ProcessSource:
 
         for i in range(0, n):
             if t[i] == '<symb>':
-                if not check_symb(a[i].value) and a[i].type == 'type' and a[i].type == 'label':
+                if not check_symb(a[i].value) or a[i].type == 'type' or a[i].type == 'label':
                     exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
             elif t[i] == '<type>':
                 if (not a[i].value == 'bool' and not a[i].value == 'int' and not a[i].value == 'string'
@@ -494,6 +457,7 @@ class ProcessSource:
                 print('Pepega something wrong', t[i], a[i].value, file=sys.stderr)
                 exit(99)
 
+    # --- INSTRUKCE ---
     def move_func(self):
         # MOVE <var> <symb>
         if self.pre_run:
@@ -594,11 +558,18 @@ class ProcessSource:
 
     def add_func(self):
         # ADD <var> <symb> <symb>
-        # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        # TODO
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        if op1_type != 'int' or op2_type != 'int':
+            print('Operandy instrukce ADD (order: ', self.cur_ins.order, ') nejsou typu int.', sep='', file=sys.stderr)
+            exit(53)
+
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'int', op1_value + op2_value)
 
     def sub_func(self):
         # SUB <var> <symb> <symb>
