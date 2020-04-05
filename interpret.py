@@ -62,7 +62,7 @@ def check_int(integer):
 
 
 def check_string(string):
-    if re.search(r'^^(([^#\\\s]|\\\d{3})*)?$', string):
+    if re.search(r'^(([^#\\\s]|\\\d{3})*)?$', string):
         return True
     return False
 
@@ -86,7 +86,7 @@ def check_label(label):
 
 
 def check_var(var):
-    if re.search(r'^(G|T|L)F@[a-zA-Z_\-$&%*!?][a-zA-Z0-9_\-$&%*!?]*$', var):
+    if re.search(r'^([GTL])F@[a-zA-Z_\-$&%*!?][a-zA-Z0-9_\-$&%*!?]*$', var):
         return True
     return False
 
@@ -105,6 +105,22 @@ def exit_msg_type_arg(name, order, expected, got_type, got_value):
     print('Argument [', got_type, '/', got_value, '] instrukce "', name, '" (order: ', order, ') nesplnuje pozadavky ',
           expected, '.', sep='', file=sys.stderr)
     exit(32)
+
+
+def my_out_print(s):
+    res = ''
+    skip = 0
+    for i in range(0, len(s)):
+        if s[i] == '\\':
+            skip = 4
+            res += chr(int(s[i + 1:i + 4]))
+
+        if skip == 0:
+            res += s[i]
+        else:
+            skip -= 1
+
+    print(res, sep='', end='')
 
 
 # TODO delete
@@ -202,6 +218,14 @@ class Frame:
             if var.name == name:
                 return True, var.type, var.value
         return False, None, None
+
+    def change_type_value(self, name, new_type, new_value):
+        for var in self.vars:
+            if var.name == name:
+                var.type = new_type
+                var.value = new_value
+                return True
+        return False
 
     def change_type(self, name, new_type):
         for var in self.vars:
@@ -370,7 +394,7 @@ class ProcessSource:
         self.ins_done = 0
 
     # extrahuje ramec, najde v nem var, spadne s odpovidajicim kodem pokud var/ramec neexistuje
-    def get_var_value_from_arg(self, arg):
+    def get_var_type_value_from_arg(self, arg):
         var = arg.value
         if re.search(r'^GF@', var):
             # prohleda gf
@@ -382,7 +406,11 @@ class ProcessSource:
             if value is None:
                 print('Promenna', var, 'nema hodnotu.', file=sys.stderr)
                 exit(56)
-            return value
+            if v_type is None:
+                # TODO is this actually error?
+                print('Promenna', var, 'nema type. Hope this is error?', file=sys.stderr)
+                exit(53)
+            return v_type, value
         elif re.search(r'^TF@', var):
             # TODO az budou ramce, a muze to existovat?
             exit_neumim_ramce()
@@ -390,15 +418,34 @@ class ProcessSource:
             # TODO az budou ramce
             exit_neumim_ramce()
         else:
-            print('Neznamy ramec promenne', var, '+ tato chyba by nemela nastat.', file=sys.stderr)
+            print('Neznamy ramec promenne', var, '+ tato chyba by nemela nastat (get_var_value).', file=sys.stderr)
+            exit(55)
+
+    def store_var_type_value_from_arg(self, arg, v_type, value):
+        var = arg.value
+        if re.search(r'^GF@', var):
+            # prohleda gf
+            searched = var.split('@')[1]
+            found = self.gf.change_type_value(searched, v_type, value)
+            if not found:
+                print('Promenna', var, 'v ramci GF neexistuje.', file=sys.stderr)
+                exit(54)
+        elif re.search(r'^TF@', var):
+            # TODO az budou ramce, a muze to existovat?
+            exit_neumim_ramce()
+        elif re.search(r'^LF@', var):
+            # TODO az budou ramce
+            exit_neumim_ramce()
+        else:
+            print('Neznamy ramec promenne', var, '+ tato chyba by nemela nastat (store_var_value).', file=sys.stderr)
             exit(55)
 
     # extrahuje hodnotu symb z argumentu, v pripade var vola funci get_var_value a pada na danych chybach
-    def get_symb_value_from_arg(self, arg):
+    def get_symb_type_value_from_arg(self, arg):
         if arg.type == 'var':
-            return self.get_var_value_from_arg(arg)
+            return self.get_var_type_value_from_arg(arg)
         else:
-            return arg.value
+            return arg.type, arg.value
 
     def check_cur_args(self, t1=None, t2=None, t3=None):
         n = sum(x is not None for x in [t1, t2, t3])
@@ -431,16 +478,17 @@ class ProcessSource:
 
         for i in range(0, n):
             if t[i] == '<symb>':
-                if not check_symb(a[i].value):
+                if not check_symb(a[i].value) and a[i].type == 'type' and a[i].type == 'label':
                     exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
             elif t[i] == '<type>':
-                if not a[i].value == 'bool' and not a[i].value == 'int' and not a[i].value == 'string':
+                if (not a[i].value == 'bool' and not a[i].value == 'int' and not a[i].value == 'string'
+                        and a[i].type != 'type'):
                     exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
             elif t[i] == '<var>':
-                if not check_var(a[i].value):
+                if not check_var(a[i].value) and a[i].type != 'var':
                     exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
             elif t[i] == '<label>':
-                if not check_label(a[i].value):
+                if not check_label(a[i].value) and a[i].type != 'label':
                     exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
             else:
                 print('Pepega something wrong', t[i], a[i].value, file=sys.stderr)
@@ -448,7 +496,6 @@ class ProcessSource:
 
     def move_func(self):
         # MOVE <var> <symb>
-        # TODO
         if self.pre_run:
             # cast, ktera se provede pri kontrole syntaxe pred zacatkem interpretace
             # u kazde funkce, zahrnuje napr. kontrolu poctu argumentu a spravny typ symb/var/label obsahu
@@ -456,7 +503,8 @@ class ProcessSource:
             return
 
         # cast, ktera se provede pri samotne interpretaci
-        pass
+        new_type, new_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, new_type, new_value)
 
     def createframe_func(self):
         # CREATEFRAME
@@ -505,7 +553,8 @@ class ProcessSource:
             # TODO jak budou ramce
             exit_neumim_ramce()
         else:
-            print('Neznamy ramec', frame, 'a sem by se to pravdepodobne nemelo dostat.', file=sys.stderr)
+            print('Neznamy ramec', frame, 'a sem by se to pravdepodobne nemelo dostat (defvar lookup).',
+                  file=sys.stderr)
             exit(32)
 
     def call_func(self):
@@ -649,11 +698,12 @@ class ProcessSource:
 
     def write_func(self):
         # WRITE <symb>
-        # TODO
         if self.pre_run:
+            self.check_cur_args('<symb>')
             return
 
-        pass
+        t, value = self.get_symb_type_value_from_arg(self.cur_ins.arg1)
+        my_out_print(value)
 
     def concat_func(self):
         # CONCAT <var> <symb> <symb>
@@ -747,7 +797,10 @@ class ProcessSource:
                                   self.cur_ins.arg1.value)'''
             return
 
-        print(self.cur_ins.arg1.type, ':', self.get_symb_value_from_arg(self.cur_ins.arg1), file=sys.stderr)
+        t, value = self.get_symb_type_value_from_arg(self.cur_ins.arg1)
+        if value == '':
+            value = 'empty string'
+        print(t, ':', value, file=sys.stderr)
 
     def break_func(self):
         # BREAK
@@ -815,9 +868,7 @@ src = ProcessSource()
 # write_all_ins(src.ins)
 src.do_pre_run()
 
-
 while src.do_next_ins():
     # TODO delete
     # print('Did:', src.cur_ins.opcode)
     pass
-
