@@ -132,12 +132,6 @@ def my_out_print(s):
     print(res, sep='', end='')
 
 
-# TODO delete
-def exit_neumim_ramce():
-    print('Jsem baby program, jeste neumim ramce, pardon.', file=sys.stderr)
-    exit(99)
-
-
 class Variable:
     def __init__(self, name):
         self.name = name
@@ -379,6 +373,7 @@ class ProcessSource:
         self.lf = []
         self.tf = None
 
+        self.call_stack = []
         self.labels = dict()
         self.labels_to_check = []
 
@@ -556,8 +551,7 @@ class ProcessSource:
             self.check_cur_args()
             return
 
-        # TODO
-        pass
+        self.tf = Frame()
 
     def pushframe_func(self):
         # PUSHFRAME
@@ -565,8 +559,12 @@ class ProcessSource:
             self.check_cur_args()
             return
 
-        # TODO
-        pass
+        if not self.tf:
+            print('Chyba, snaha PUSHFRAME kdyz neexistuje TF.', file=sys.stderr)
+            exit(55)
+
+        self.lf.append(self.tf)
+        self.tf = None
 
     def popframe_func(self):
         # POPFRAME
@@ -574,8 +572,11 @@ class ProcessSource:
             self.check_cur_args()
             return
 
-        # TODO
-        pass
+        if not self.lf:
+            print('Chyba, snaha POPFRAME kdyz je zasobnik LF prazdny.', file=sys.stderr)
+            exit(55)
+
+        self.tf = self.lf.pop()
 
     def defvar_func(self):
         # DEFVAR <var>
@@ -587,15 +588,27 @@ class ProcessSource:
         if frame == "GF":
             res = self.gf.find_var(name)
             if res[0]:
-                print('Promenna ', name, 'jiz v GF existuje.')
+                print('Promenna ', name, 'jiz v GF existuje.', file=sys.stderr)
                 exit(52)
             self.gf.add_var(Variable(name))
         elif frame == "TF":
-            # TODO jak budou ramce... a muze toto existovat?
-            exit_neumim_ramce()
+            if self.tf is None:
+                print('Snaha definovat promennou na TF, ktery neexistuje.', file=sys.stderr)
+                exit(55)
+            res = self.tf.find_var(name)
+            if res[0]:
+                print('Promenna ', name, 'jiz v TF existuje.', file=sys.stderr)
+                exit(52)
+            self.tf.add_var(Variable(name))
         elif frame == "LF":
-            # TODO jak budou ramce
-            exit_neumim_ramce()
+            if not self.lf:
+                print('Snaha definovat promennou na LF, ktery neexistuje.', file=sys.stderr)
+                exit(55)
+            res = self.lf[-1].find_var(name)
+            if res[0]:
+                print('Promenna ', name, 'jiz v LF existuje.', file=sys.stderr)
+                exit(52)
+            self.lf[-1].add_var(Variable(name))
         else:
             print('Neznamy ramec', frame, 'a sem by se to pravdepodobne nemelo dostat (defvar lookup).',
                   file=sys.stderr)
@@ -603,12 +616,12 @@ class ProcessSource:
 
     def call_func(self):
         # CALL <label>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<label>')
             return
 
-        pass
+        self.call_stack.append(self.ins_index)
+        self.ins_index = self.labels.get(self.cur_ins.arg1.value)
 
     def return_func(self):
         # RETURN
@@ -616,8 +629,11 @@ class ProcessSource:
             self.check_cur_args()
             return
 
-        # TODO
-        pass
+        if not self.call_stack:
+            print('Chyba, volani navratu z funkce kdyz je prazdny zasobnik volani.', file=sys.stderr)
+            exit(56)
+
+        self.ins_index = self.call_stack.pop()
 
     def pushs_func(self):
         # PUSHS <symb>
@@ -924,12 +940,14 @@ class ProcessSource:
             print('Ramec TF:')
             print(self.tf.debug_frame(), file=sys.stderr)
 
-        print('LF ramce (posledni aktualni):')
+        if self.lf:
+            print('LF ramce (posledni aktualni):')
         for frame in self.lf:
             print('LF:')
             print(frame.debug_frame(), file=sys.stderr)
 
     def do_next_ins(self):
+        # TODO delete this
         """
         old code with iteration
         try:
