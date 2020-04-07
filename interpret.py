@@ -866,6 +866,7 @@ class ProcessSource:
     def stri2int_func(self):
         # STRI2INT <var> <symb> <symb>
         # TODO
+        # TODO unrelated - kde to chce var, snaha hledat v intu jmeno var dopadne jak?
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>', '<symb>')
             return
@@ -946,13 +947,60 @@ class ProcessSource:
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>')
             return
-        # TODO dodelat
         # name z cur_ins.arg2 osekane o GF/TF/LF
-        # existuje ramec?
-        # vyhledat v ramcich rucne
-        # frame.find_var(name) -> found / type / value
-        # neni-li to var (else vetev od zacatku podle type), type je result
-        # jinak res type var ('' pro prazdnou)
+        # reseno hnusne protoze pripravene funkce padaly na chybejicim typu
+        t = self.cur_ins.arg2.type
+        value = self.cur_ins.arg2.value
+        res_type = t
+        if t == 'var':
+            try:
+                frame, name = value.split('@')
+                if frame == 'GF':
+                    res = self.gf.find_var(name)
+                    if not res[0]:
+                        print('Promenna', name, 'v GF neexistuje.', file=sys.stderr)
+                        exit(52)
+                    # res = found, type, value
+                    if not res[1]:
+                        res_type = ''
+                    else:
+                        res_type = res[1]
+                elif frame == 'TF':
+                    if self.tf is None:
+                        print('Snaha pristoupit k promenne na TF, ktery neexistuje.', file=sys.stderr)
+                        exit(55)
+                    res = self.tf.find_var(name)
+                    if not res[0]:
+                        print('Promenna', name, 'v TF neexistuje.', file=sys.stderr)
+                        exit(52)
+
+                    # res = found, type, value
+                    if not res[1]:
+                        res_type = ''
+                    else:
+                        res_type = res[1]
+                elif frame == 'LF':
+                    if not self.lf:
+                        print('Snaha definovat promennou na LF, ktery neexistuje.', file=sys.stderr)
+                        exit(55)
+                    res = self.lf[-1].find_var(name)
+                    if not res[0]:
+                        print('Promenna ', name, 'v LF neexistuje.', file=sys.stderr)
+                        exit(52)
+
+                    # res = found, type, value
+                    if not res[1]:
+                        res_type = ''
+                    else:
+                        res_type = res[1]
+                else:
+                    print('JIna hodnota nez GF/LF/TF, nemelo by se stat.', file=sys.stderr)
+                    exit(32)
+            except (ValueError, AttributeError):
+                print('Chyba split, nemelo by se stat.', file=sys.stderr)
+                exit(32)
+
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'string', res_type)
 
     def label_func(self):
         # LABEL <label>
