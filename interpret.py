@@ -57,42 +57,51 @@ def check_args():
 
 def check_int(integer):
     if re.search(r'^([-+])?(\d)+$', integer):
-        return True
-    return False
+        return
+    print('Textovy atribut', integer, 'neodpovida zadanemu tvaru pro typ "int".', file=sys.stderr)
+    exit(32)
 
 
 def check_string(string):
     if re.search(r'^(([^#\\\s]|\\\d{3})*)?$', string):
-        return True
-    return False
+        return
+    print('Textovy atribut', string, 'neodpovida zadanemu tvaru pro typ "string".', file=sys.stderr)
+    exit(32)
 
 
 def check_bool(boolean):
     if boolean == 'true' or boolean == 'false':
-        return True
-    return False
+        return
+    print('Textovy atribut', boolean, 'neodpovida zadanemu tvaru pro typ "boolean".', file=sys.stderr)
+    exit(32)
 
 
 def check_nil(nil):
     if nil == 'nil':
-        return True
-    return False
+        return
+    print('Textovy atribut', nil, 'neodpovida zadanemu tvaru pro typ "nil".', file=sys.stderr)
+    exit(32)
 
 
 def check_label(label):
     if re.search(r'^[a-zA-Z_\-$&%*!?][a-zA-Z0-9_\-$&%*!?]*$', label):
-        return True
-    return False
+        return
+    print('Textovy atribut', label, 'neodpovida zadanemu tvaru pro typ "label".', file=sys.stderr)
+    exit(32)
+
+
+def check_type(t):
+    if t == 'bool' or t == 'int' or t == 'string':
+        return
+    print('Textovy atribut', t, 'neodpovida zadanemu tvaru pro typ "type".', file=sys.stderr)
+    exit(32)
 
 
 def check_var(var):
     if re.search(r'^([GTL])F@[a-zA-Z_\-$&%*!?][a-zA-Z0-9_\-$&%*!?]*$', var):
-        return True
-    return False
-
-
-def check_symb(symb):
-    return check_var(symb) or check_nil(symb) or check_bool(symb) or check_int(symb) or check_string(symb)
+        return
+    print('Textovy atribut', var, 'neodpovida zadanemu tvaru pro typ "var".', file=sys.stderr)
+    exit(32)
 
 
 def exit_msg_num_args(name, order, right):
@@ -149,7 +158,34 @@ class Argument:
             print('Neexistujici atribut type "', a_type, '" u argumentu.', sep='', file=sys.stderr)
             exit(32)
         self.type = a_type
-        self.value = value
+        if a_type == 'bool':
+            check_bool(value)
+            if value == 'false':
+                self.value = False
+            elif value == 'true':
+                self.value = True
+            else:
+                print('Bool spatne hodnoty. Nemelo by nastat.', file=sys.stderr)
+                exit(32)
+        elif a_type == 'int':
+            check_int(value)
+            try:
+                self.value = int(value)
+            except ValueError:
+                print('Int spatne hodnoty. Nemelo by nastat.', file=sys.stderr)
+                exit(32)
+        elif a_type == 'nil':
+            check_nil(value)
+            self.value = None
+        elif a_type == 'type':
+            check_type(value)
+            self.value = value
+        elif a_type == 'var':
+            check_var(value)
+            self.value = value
+        else:
+            check_string(value)
+            self.value = value
 
 
 class Instruction:
@@ -205,7 +241,7 @@ class Frame:
             if var.value is None:
                 var_value = 'None'
             else:
-                var_value = var.value
+                var_value = str(var.value)
             if var.type is None:
                 var_type = 'None'
             else:
@@ -235,13 +271,13 @@ def get_instruction(elem):
             new_text = ''
         else:
             new_text = arg.text
-        if count == 1:
+        if arg.tag == 'arg1':
             arg1 = Argument(arg.attrib['type'], new_text)
-        elif count == 2:
+        elif arg.tag == 'arg2':
             arg2 = Argument(arg.attrib['type'], new_text)
-        elif count == 3:
+        elif arg.tag == 'arg3':
             arg3 = Argument(arg.attrib['type'], new_text)
-        else:
+        elif count > 3:
             print('Prilis argumentu u instrukce', elem.attrib['opcode'], file=sys.stderr)
             exit(32)
 
@@ -270,6 +306,7 @@ def get_instruction(elem):
     return Instruction(opcode, int(elem.attrib['order']), arg1, arg2, arg3)
 
 
+# noinspection DuplicatedCode
 class ProcessSource:
     # inicializace nacte XML soubor, zkontroluje "well-formed", korenovy element program a jeho atributy
     # zpracuje instrukce do self.ins, zalozi iterator pres ne
@@ -334,9 +371,16 @@ class ProcessSource:
         # inicializuje iterator pres list instrukci
         self.ins_iter = iter(self.ins)
         self.cur_ins = None
+        self.ins_index = -1
+        self.ins_len = len(self.ins)
 
         # vytvori global frame
         self.gf = Frame()
+        self.lf = []
+        self.tf = None
+
+        self.labels = dict()
+        self.labels_to_check = []
 
         self.pre_run = True
         self.ins_done = 0
@@ -347,9 +391,14 @@ class ProcessSource:
     def do_pre_run(self):
         while self.do_next_ins():
             pass
+        self.ins_index = -1
         self.pre_run = False
         self.ins_iter = iter(self.ins)
         self.ins_done = 0
+        for label in self.labels_to_check:
+            if not self.labels.get(label):
+                print('Navesti "', label, '" co ma byt volano neexistuje.', sep='', file=sys.stderr)
+                exit(52)
 
     # extrahuje ramec, najde v nem var, spadne s odpovidajicim kodem pokud var/ramec neexistuje
     def get_var_type_value_from_arg(self, arg):
@@ -365,16 +414,41 @@ class ProcessSource:
                 print('Promenna', var, 'nema hodnotu.', file=sys.stderr)
                 exit(56)
             if v_type is None:
-                # TODO is this actually error?
                 print('Promenna', var, 'nema type. Hope this is error?', file=sys.stderr)
                 exit(53)
             return v_type, value
         elif re.search(r'^TF@', var):
-            # TODO az budou ramce, a muze to existovat?
-            exit_neumim_ramce()
+            if self.tf is None:
+                print('Ramec TF neni inicializovan.')
+                exit(55)
+            searched = var.split('@')[1]
+            found, v_type, value = self.tf.find_var(searched)
+            if not found:
+                print('Promenna', var, 'v ramci TF neexistuje.', file=sys.stderr)
+                exit(54)
+            if value is None:
+                print('Promenna', var, 'nema hodnotu.', file=sys.stderr)
+                exit(56)
+            if v_type is None:
+                print('Promenna', var, 'nema type. Hope this is error?', file=sys.stderr)
+                exit(53)
+            return v_type, value
         elif re.search(r'^LF@', var):
-            # TODO az budou ramce
-            exit_neumim_ramce()
+            if not self.lf:
+                print('Ramec LF neni inicializovan.')
+                exit(55)
+            searched = var.split('@')[1]
+            found, v_type, value = self.lf[-1].find_var(searched)
+            if not found:
+                print('Promenna', var, 'v ramci LF neexistuje.', file=sys.stderr)
+                exit(54)
+            if value is None:
+                print('Promenna', var, 'nema hodnotu.', file=sys.stderr)
+                exit(56)
+            if v_type is None:
+                print('Promenna', var, 'nema type. Hope this is error?', file=sys.stderr)
+                exit(53)
+            return v_type, value
         else:
             print('Neznamy ramec promenne', var, '+ tato chyba by nemela nastat (get_var_value).', file=sys.stderr)
             exit(55)
@@ -389,11 +463,23 @@ class ProcessSource:
                 print('Promenna', var, 'v ramci GF neexistuje.', file=sys.stderr)
                 exit(54)
         elif re.search(r'^TF@', var):
-            # TODO az budou ramce, a muze to existovat?
-            exit_neumim_ramce()
+            if self.tf is None:
+                print('Ramec TF neni inicializovan.')
+                exit(55)
+            searched = var.split('@')[1]
+            found = self.tf.change_type_value(searched, v_type, value)
+            if not found:
+                print('Promenna', var, 'v ramci TF neexistuje.', file=sys.stderr)
+                exit(54)
         elif re.search(r'^LF@', var):
-            # TODO az budou ramce
-            exit_neumim_ramce()
+            if not self.lf:
+                print('Ramec LF neni inicializovan.')
+                exit(55)
+            searched = var.split('@')[1]
+            found = self.lf[-1].change_type_value(searched, v_type, value)
+            if not found:
+                print('Promenna', var, 'v ramci LF neexistuje.', file=sys.stderr)
+                exit(54)
         else:
             print('Neznamy ramec promenne', var, '+ tato chyba by nemela nastat (store_var_value).', file=sys.stderr)
             exit(55)
@@ -403,12 +489,7 @@ class ProcessSource:
         if arg.type == 'var':
             return self.get_var_type_value_from_arg(arg)
         else:
-            '''if arg.type == 'int':
-                return arg.type, int(arg.value)
-            else:
-                return arg.type, arg.value'''
             return arg.type, arg.value
-            # TODO chce to resit int/string, not sure kde, par veci bude failovat
 
     def check_cur_args(self, t1=None, t2=None, t3=None):
         n = sum(x is not None for x in [t1, t2, t3])
@@ -441,17 +522,16 @@ class ProcessSource:
 
         for i in range(0, n):
             if t[i] == '<symb>':
-                if not check_symb(a[i].value) or a[i].type == 'type' or a[i].type == 'label':
+                if a[i].type == 'type' or a[i].type == 'label':
                     exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
             elif t[i] == '<type>':
-                if (not a[i].value == 'bool' and not a[i].value == 'int' and not a[i].value == 'string'
-                        and a[i].type != 'type'):
+                if a[i].type != 'type':
                     exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
             elif t[i] == '<var>':
-                if not check_var(a[i].value) and a[i].type != 'var':
+                if a[i].type != 'var':
                     exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
             elif t[i] == '<label>':
-                if not check_label(a[i].value) and a[i].type != 'label':
+                if a[i].type != 'label':
                     exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, t[i], a[i].type, a[i].value)
             else:
                 print('Pepega something wrong', t[i], a[i].value, file=sys.stderr)
@@ -552,6 +632,7 @@ class ProcessSource:
         # POPS <var>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>')
             return
 
         pass
@@ -562,7 +643,6 @@ class ProcessSource:
             self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        # TODO
         op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
         op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
         if op1_type != 'int' or op2_type != 'int':
@@ -573,32 +653,55 @@ class ProcessSource:
 
     def sub_func(self):
         # SUB <var> <symb> <symb>
-        # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        if op1_type != 'int' or op2_type != 'int':
+            print('Operandy instrukce SUB (order: ', self.cur_ins.order, ') nejsou typu int.', sep='', file=sys.stderr)
+            exit(53)
+
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'int', op1_value - op2_value)
 
     def mul_func(self):
         # MUL <var> <symb> <symb>
-        # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        if op1_type != 'int' or op2_type != 'int':
+            print('Operandy instrukce MUL (order: ', self.cur_ins.order, ') nejsou typu int.', sep='', file=sys.stderr)
+            exit(53)
+
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'int', op1_value * op2_value)
 
     def idiv_func(self):
         # IDIV <var> <symb> <symb>
-        # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        if op1_type != 'int' or op2_type != 'int':
+            print('Operandy instrukce ADD (order: ', self.cur_ins.order, ') nejsou typu int.', sep='', file=sys.stderr)
+            exit(53)
+
+        if op2_value == 0:
+            print('Chyba deleni nulou u IDIV instrukce (order: ', self.cur_ins.order, ').', sep='', file=sys.stderr)
+            exit(57)
+
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'int', int(op1_value / op2_value))
 
     def lt_func(self):
         # LT <var> <symb> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
         pass
@@ -607,6 +710,7 @@ class ProcessSource:
         # GT <var> <symb> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
         pass
@@ -615,6 +719,7 @@ class ProcessSource:
         # EQ <var> <symb> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
         pass
@@ -623,6 +728,7 @@ class ProcessSource:
         # AND <var> <symb> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
         pass
@@ -631,6 +737,7 @@ class ProcessSource:
         # OR <var> <symb> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
         pass
@@ -639,6 +746,7 @@ class ProcessSource:
         # NOT <var> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>')
             return
 
         pass
@@ -647,6 +755,7 @@ class ProcessSource:
         # INT2CHAR <var> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>')
             return
 
         pass
@@ -655,6 +764,7 @@ class ProcessSource:
         # STRI2INT <var> <symb> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
         pass
@@ -663,6 +773,7 @@ class ProcessSource:
         # READ <var> <type>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<type>')
             return
 
         pass
@@ -674,12 +785,17 @@ class ProcessSource:
             return
 
         t, value = self.get_symb_type_value_from_arg(self.cur_ins.arg1)
+        if t == 'nil':
+            value = 'nil'
+        else:
+            value = str(value)
         my_out_print(value)
 
     def concat_func(self):
         # CONCAT <var> <symb> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
         pass
@@ -688,6 +804,7 @@ class ProcessSource:
         # STRLEN <var> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>')
             return
 
         pass
@@ -696,6 +813,7 @@ class ProcessSource:
         # GETCHAR <var> <symb> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
         pass
@@ -704,6 +822,7 @@ class ProcessSource:
         # SETCHAR <var> <symb> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
         pass
@@ -712,25 +831,34 @@ class ProcessSource:
         # TYPE <var> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<var>', '<symb>')
             return
 
         pass
 
     def label_func(self):
         # LABEL <label>
-        # TODO
         if self.pre_run:
+            self.check_cur_args('<label>')
+            if self.labels.get(self.cur_ins.arg1.value):
+                print('Redefinice navesti "', self.cur_ins.arg1.value, '".', sep='', file=sys.stderr)
+                exit(52)
+            self.labels.update({self.cur_ins.arg1.value: self.ins_index})
             return
 
         pass
 
     def jump_func(self):
         # JUMP <label>
-        # TODO
         if self.pre_run:
+            self.check_cur_args('<label>')
+            self.labels_to_check.append(self.cur_ins.arg1.value)
             return
 
-        pass
+        new_index = self.labels.get(self.cur_ins.arg1.value)
+        if not new_index:
+            print('Neexistujici navesti, pravdepodobne by se nemelo stat', file=sys.stderr)
+        self.ins_index = new_index
 
     def jumpifeq_func(self):
         # JUMPIFEQ <label> <symb> <symb>
@@ -745,33 +873,38 @@ class ProcessSource:
         # JUMIFNEQ <label> <symb> <symb>
         # TODO
         if self.pre_run:
+            self.check_cur_args('<label>', '<symb>', '<symb>')
             return
 
         pass
 
     def exit_func(self):
         # EXIT <symb>
-        # TODO
         if self.pre_run:
+            self.check_cur_args('<symb>')
             return
 
-        pass
+        t, value = self.get_symb_type_value_from_arg(self.cur_ins.arg1)
+        if t != 'int':
+            print('Exit zavolan nad hodnotou co neni integer.', file=sys.stderr)
+            exit(53)
+        if value < 0 or value > 49:
+            print('Exit zavolan s hodnotou mimo interval <0,49>', file=sys.stderr)
+            exit(53)
+        exit(value)
 
     def dprint_func(self):
         # DPRINT <symb>
         if self.pre_run:
             self.check_cur_args('<symb>')
-            '''if not self.cur_ins.arg1 or self.cur_ins.arg2 or self.cur_ins.arg3:
-                exit_msg_num_args(self.cur_ins.opcode, self.cur_ins.order, 1)
-            if not check_symb(self.cur_ins.arg1.value):
-                exit_msg_type_arg(self.cur_ins.opcode, self.cur_ins.order, '<symb>', self.cur_ins.arg1.type,
-                                  self.cur_ins.arg1.value)'''
             return
 
         t, value = self.get_symb_type_value_from_arg(self.cur_ins.arg1)
-        if value == '':
+        if t == 'nil':
+            value = 'nil'
+        elif value == '':
             value = 'empty string'
-        print(t, ':', value, file=sys.stderr)
+        print(t, ':', str(value), file=sys.stderr)
 
     def break_func(self):
         # BREAK
@@ -785,15 +918,29 @@ class ProcessSource:
               sep='', file=sys.stderr)
 
         print('Ramec GF:')
-        print(self.gf.debug_frame())
+        print(self.gf.debug_frame(), file=sys.stderr)
 
-        # TODO pridat debug ostatnich frames, az budou hotove
+        if self.tf:
+            print('Ramec TF:')
+            print(self.tf.debug_frame(), file=sys.stderr)
+
+        print('LF ramce (posledni aktualni):')
+        for frame in self.lf:
+            print('LF:')
+            print(frame.debug_frame(), file=sys.stderr)
 
     def do_next_ins(self):
+        """
+        old code with iteration
         try:
             self.cur_ins = next(self.ins_iter)
         except StopIteration:
             return False
+        """
+        self.ins_index += 1
+        if self.ins_index == self.ins_len:
+            return False
+        self.cur_ins = self.ins[self.ins_index]
 
         try:
             # spusti funkci dane instrukce, naming convention name_func()
@@ -834,10 +981,9 @@ def write_all_ins(inss):
 
 
 # MAIN BODY
-
 src = ProcessSource()
-# write_all_ins(src.ins)
 src.do_pre_run()
+# write_all_ins(src.ins)
 
 while src.do_next_ins():
     # TODO delete

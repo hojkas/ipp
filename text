@@ -1,6 +1,17 @@
 .IPPcode20
 DEFVAR GF@i
-MOVE GF@i int@0
+MOVE GF@i int@3
+JUMP hello
+WRITE string@Obsah\032i:\032
+WRITE GF@i
+WRITE string@\010
+LABEL hi
+MUL GF@i GF@i int@5
+WRITE string@Obsah\032i:\032
+WRITE GF@i
+WRITE string@\010
+IDIV GF@i GF@i int@2
+LABEL hello
 WRITE string@Obsah\032i:\032
 WRITE GF@i
 WRITE string@\010
