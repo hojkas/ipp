@@ -720,30 +720,89 @@ class ProcessSource:
 
     def lt_func(self):
         # LT <var> <symb> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        if op1_type == 'nil' or op2_type == 'nil':
+            print('Jeden z operandu instrukce LT (order: ', self.cur_ins.order, ') je typu nil.', sep='',
+                  file=sys.stderr)
+            exit(53)
+        if op1_type != op2_type:
+            print('Typy operandu instrukce LT (order: ', self.cur_ins.order, ') se neshoduji.', sep='',
+                  file=sys.stderr)
+            exit(53)
+
+        result = None
+        if op1_type == 'int' or op2_type == 'string':
+            result = (op1_value < op2_value)
+        elif op1_type == 'bool':
+            if not op1_value and op2_value:
+                result = True
+            else:
+                result = False
+        else:
+            print('Something probably wrong.', file=sys.stderr)
+            exit(32)
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'bool', result)
 
     def gt_func(self):
         # GT <var> <symb> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        if op1_type == 'nil' or op2_type == 'nil':
+            print('Jeden z operandu instrukce GT (order: ', self.cur_ins.order, ') je typu nil.', sep='',
+                  file=sys.stderr)
+            exit(53)
+        if op1_type != op2_type:
+            print('Typy operandu instrukce GT (order: ', self.cur_ins.order, ') se neshoduji.', sep='',
+                  file=sys.stderr)
+            exit(53)
+
+        result = None
+        if op1_type == 'int' or op2_type == 'string':
+            result = (op1_value > op2_value)
+        elif op1_type == 'bool':
+            if op1_value and not op2_value:
+                result = True
+            else:
+                result = False
+        else:
+            print('Something probably wrong.', file=sys.stderr)
+            exit(32)
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'bool', result)
 
     def eq_func(self):
         # EQ <var> <symb> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        result = None
+
+        if op1_type == 'nil' or op2_type == 'nil':
+            if op1_type == op2_type:
+                result = True
+            else:
+                result = False
+        elif op1_type != op2_type:
+            print('Typy operandu instrukce EQ (order: ', self.cur_ins.order, ') se neshoduji.', sep='',
+                  file=sys.stderr)
+            exit(53)
+        else:
+            result = (op1_value == op2_value)
+
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'bool', result)
+
+        # TODO chápu porovnávání dobře? co je chyba a co false?
 
     def and_func(self):
         # AND <var> <symb> <symb>

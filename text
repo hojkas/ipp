@@ -1,13 +1,5 @@
 .IPPcode20
 DEFVAR GF@i
-MOVE GF@i int@3
-PUSHS GF@i
-MOVE GF@i int@10
-PUSHS GF@i
-CALL my_func
-EXIT int@5
-LABEL my_func
-DEFVAR GF@new
-POPS GF@new
-WRITE GF@new
-RETURN
+GT GF@i string@hello nil@nil
+WRITE GF@i
+WRITE string@\010

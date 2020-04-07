@@ -3,37 +3,15 @@
  <instruction order="1" opcode="DEFVAR">
   <arg1 type="var">GF@i</arg1>
  </instruction>
- <instruction order="2" opcode="MOVE">
+ <instruction order="2" opcode="GT">
   <arg1 type="var">GF@i</arg1>
-  <arg2 type="int">3</arg2>
+  <arg2 type="string">hello</arg2>
+  <arg3 type="nil">nil</arg3>
  </instruction>
- <instruction order="3" opcode="PUSHS">
-  <arg1 type="var">GF@i</arg1>
- </instruction>
- <instruction order="4" opcode="MOVE">
-  <arg1 type="var">GF@i</arg1>
-  <arg2 type="int">10</arg2>
- </instruction>
- <instruction order="5" opcode="PUSHS">
+ <instruction order="3" opcode="WRITE">
   <arg1 type="var">GF@i</arg1>
  </instruction>
- <instruction order="6" opcode="CALL">
-  <arg1 type="label">my_func</arg1>
+ <instruction order="4" opcode="WRITE">
+  <arg1 type="string">\010</arg1>
  </instruction>
- <instruction order="7" opcode="EXIT">
-  <arg1 type="int">5</arg1>
- </instruction>
- <instruction order="8" opcode="LABEL">
-  <arg1 type="label">my_func</arg1>
- </instruction>
- <instruction order="9" opcode="DEFVAR">
-  <arg1 type="var">GF@new</arg1>
- </instruction>
- <instruction order="10" opcode="POPS">
-  <arg1 type="var">GF@new</arg1>
- </instruction>
- <instruction order="11" opcode="WRITE">
-  <arg1 type="var">GF@new</arg1>
- </instruction>
- <instruction order="12" opcode="RETURN"/>
 </program>
