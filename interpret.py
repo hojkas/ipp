@@ -52,7 +52,9 @@ def check_args():
     if not int_source and not int_input:
         print('Minimalne jeden z parametru --input=file nebo --source=file musi byt zadan', file=sys.stderr)
         exit(10)
-    return int_source, int_input
+    if int_input:
+        sys.stdin = open(int_input, 'r')
+    return int_source
 
 
 def check_int(integer):
@@ -306,7 +308,7 @@ class ProcessSource:
     # zpracuje instrukce do self.ins, zalozi iterator pres ne
     # vytvori self.gf jako global frame
     def __init__(self):
-        int_source, int_input = check_args()
+        int_source = check_args()
         if not int_source:
             try:
                 self.source = et.parse(sys.stdin)
@@ -865,22 +867,51 @@ class ProcessSource:
 
     def stri2int_func(self):
         # STRI2INT <var> <symb> <symb>
-        # TODO
-        # TODO unrelated - kde to chce var, snaha hledat v intu jmeno var dopadne jak?
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        if op1_type != 'string' or op2_type != 'int':
+            print('Operandy instrukce STRI2INT (order: ', self.cur_ins.order, ') nejsou typu string/int.', sep='',
+                  file=sys.stderr)
+            exit(53)
+
+        if op2_value < 0 or op2_value >= len(op1_value):
+            print('Index', op2_value, 'je mimo rozsah stringu', op1_value, file=sys.stderr)
+            exit(58)
+        char = op1_value[op2_value]
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'int', ord(char))
 
     def read_func(self):
         # READ <var> <type>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<type>')
             return
 
-        pass
+        try:
+            read = input()
+            op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+
+            if op1_value == 'int':
+                self.store_var_type_value_from_arg(self.cur_ins.arg1, 'int', int(read))
+            elif op1_value == 'string':
+                self.store_var_type_value_from_arg(self.cur_ins.arg1, 'string', read)
+            elif op1_value == 'bool':
+                if read.lower == 'true':
+                    read = 'true'
+                else:
+                    read = 'false'
+                self.store_var_type_value_from_arg(self.cur_ins.arg1, 'bool', read)
+            else:
+                print('Neplatny typ pro konverzi skrz READ.', file=sys.stderr)
+                exit(57)
+        except EOFError:
+            self.store_var_type_value_from_arg(self.cur_ins.arg1, 'nil', 'nil')
+        except ValueError:
+            print('Spatny typ nacteneho retezce pro konverzi.', file=sys.stderr)
+            exit(57)
 
     def write_func(self):
         # WRITE <symb>
@@ -1155,14 +1186,6 @@ class ProcessSource:
             print(frame.debug_frame(), file=sys.stderr)
 
     def do_next_ins(self):
-        # TODO delete this
-        """
-        old code with iteration
-        try:
-            self.cur_ins = next(self.ins_iter)
-        except StopIteration:
-            return False
-        """
         self.ins_index += 1
         if self.ins_index == self.ins_len:
             return False

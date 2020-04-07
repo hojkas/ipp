@@ -1,7 +1,5 @@
 .IPPcode20
 DEFVAR GF@a
 DEFVAR GF@b
-MOVE GF@a string@abcde
-SETCHAR GF@a int@5 string@x
+READ GF@a string
 WRITE GF@a
-WRITE string@\010
