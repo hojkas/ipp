@@ -946,7 +946,7 @@ class ProcessSource:
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>')
             return
-        # TODO
+        # TODO dodelat
         # name z cur_ins.arg2 osekane o GF/TF/LF
         # existuje ramec?
         # vyhledat v ramcich rucne
