@@ -376,6 +376,7 @@ class ProcessSource:
         self.call_stack = []
         self.labels = dict()
         self.labels_to_check = []
+        self.symb_stack = []
 
         self.pre_run = True
         self.ins_done = 0
@@ -637,21 +638,25 @@ class ProcessSource:
 
     def pushs_func(self):
         # PUSHS <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<symb>')
             return
 
-        pass
+        t, value = self.get_symb_type_value_from_arg(self.cur_ins.arg1)
+        self.symb_stack.append((t, value))
 
     def pops_func(self):
         # POPS <var>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>')
             return
 
-        pass
+        if not self.symb_stack:
+            print('Zasobnik na promenne/konstanty je prazdny.', file=sys.stderr)
+            exit(56)
+
+        new_type, new_value = self.symb_stack.pop()
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, new_type, new_value)
 
     def add_func(self):
         # ADD <var> <symb> <symb>
