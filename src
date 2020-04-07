@@ -3,15 +3,42 @@
  <instruction order="1" opcode="DEFVAR">
   <arg1 type="var">GF@i</arg1>
  </instruction>
- <instruction order="2" opcode="GT">
+ <instruction order="2" opcode="MOVE">
   <arg1 type="var">GF@i</arg1>
-  <arg2 type="string">hello</arg2>
-  <arg3 type="nil">nil</arg3>
+  <arg2 type="string">a</arg2>
  </instruction>
- <instruction order="3" opcode="WRITE">
-  <arg1 type="var">GF@i</arg1>
+ <instruction order="3" opcode="DEFVAR">
+  <arg1 type="var">GF@a</arg1>
  </instruction>
- <instruction order="4" opcode="WRITE">
+ <instruction order="4" opcode="MOVE">
+  <arg1 type="var">GF@a</arg1>
+  <arg2 type="int">68</arg2>
+ </instruction>
+ <instruction order="5" opcode="INT2CHAR">
+  <arg1 type="var">GF@a</arg1>
+  <arg2 type="var">GF@a</arg2>
+ </instruction>
+ <instruction order="6" opcode="CONCAT">
+  <arg1 type="var">GF@a</arg1>
+  <arg2 type="var">GF@a</arg2>
+  <arg3 type="var">GF@i</arg3>
+ </instruction>
+ <instruction order="7" opcode="WRITE">
+  <arg1 type="var">GF@a</arg1>
+ </instruction>
+ <instruction order="8" opcode="WRITE">
   <arg1 type="string">\010</arg1>
+ </instruction>
+ <instruction order="9" opcode="NOT">
+  <arg1 type="var">GF@a</arg1>
+  <arg2 type="bool">true</arg2>
+ </instruction>
+ <instruction order="10" opcode="OR">
+  <arg1 type="var">GF@a</arg1>
+  <arg2 type="var">GF@a</arg2>
+  <arg3 type="bool">false</arg3>
+ </instruction>
+ <instruction order="11" opcode="WRITE">
+  <arg1 type="var">GF@a</arg1>
  </instruction>
 </program>

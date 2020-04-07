@@ -802,43 +802,66 @@ class ProcessSource:
 
         self.store_var_type_value_from_arg(self.cur_ins.arg1, 'bool', result)
 
-        # TODO chápu porovnávání dobře? co je chyba a co false?
-
     def and_func(self):
         # AND <var> <symb> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        if op1_type != 'bool' or op2_type != 'bool':
+            print('Operandy instrukce AND (order: ', self.cur_ins.order, ') nejsou typu bool.', sep='', file=sys.stderr)
+            exit(53)
+
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'bool', op1_value and op2_value)
 
     def or_func(self):
         # OR <var> <symb> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        if op1_type != 'bool' or op2_type != 'bool':
+            print('Operandy instrukce OR (order: ', self.cur_ins.order, ') nejsou typu bool.', sep='', file=sys.stderr)
+            exit(53)
+
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'bool', op1_value or op2_value)
 
     def not_func(self):
         # NOT <var> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        if op1_type != 'bool':
+            print('Operand instrukce OR (order: ', self.cur_ins.order, ') není typu bool.', sep='', file=sys.stderr)
+            exit(53)
+
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'bool', not op1_value)
 
     def int2char_func(self):
         # INT2CHAR <var> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        if op1_type != 'int':
+            print('Operand instrukce INT2CHAR (order: ', self.cur_ins.order, ') není typu int.', sep='',
+                  file=sys.stderr)
+            exit(53)
+
+        try:
+            result = chr(op1_value)
+            self.store_var_type_value_from_arg(self.cur_ins.arg1, 'string', result)
+        except ValueError:
+            print('Hodnota mimo rozsah UNICODE znaku, instrukce INT2CHAR (order: ', self.cur_ins.order, ').',
+                  sep='', file=sys.stderr)
+            exit(58)
 
     def stri2int_func(self):
         # STRI2INT <var> <symb> <symb>
@@ -873,12 +896,18 @@ class ProcessSource:
 
     def concat_func(self):
         # CONCAT <var> <symb> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        if op1_type != 'string' or op2_type != 'string':
+            print('Operandy instrukce CONCAT (order: ', self.cur_ins.order, ') nejsou typu string.', sep='',
+                  file=sys.stderr)
+            exit(53)
+
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'string', op1_value + op2_value)
 
     def strlen_func(self):
         # STRLEN <var> <symb>
