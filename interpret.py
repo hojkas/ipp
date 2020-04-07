@@ -911,12 +911,17 @@ class ProcessSource:
 
     def strlen_func(self):
         # STRLEN <var> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        if op1_type != 'string':
+            print('Operand instrukce STRLEN (order: ', self.cur_ins.order, ') není typu string.', sep='',
+                  file=sys.stderr)
+            exit(53)
+
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'int', len(op1_value))
 
     def getchar_func(self):
         # GETCHAR <var> <symb> <symb>
@@ -938,12 +943,16 @@ class ProcessSource:
 
     def type_func(self):
         # TYPE <var> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>')
             return
-
-        pass
+        # TODO
+        # name z cur_ins.arg2 osekane o GF/TF/LF
+        # existuje ramec?
+        # vyhledat v ramcich rucne
+        # frame.find_var(name) -> found / type / value
+        # neni-li to var (else vetev od zacatku podle type), type je result
+        # jinak res type var ('' pro prazdnou)
 
     def label_func(self):
         # LABEL <label>

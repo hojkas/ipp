@@ -1,6 +1,9 @@
 .IPPcode20
 DEFVAR GF@counter
 MOVE GF@counter string@
+DEFVAR GF@len
+STRLEN GF@len GF@counter
+WRITE GF@len
 LABEL while
 JUMPIFEQ end GF@counter string@aaa
 WRITE GF@counter
