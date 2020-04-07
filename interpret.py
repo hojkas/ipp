@@ -5,8 +5,7 @@ import getopt
 
 
 # Funkce nacte argumenty, zpracuje, a do int_source a int_input vlozi z zadaneho zdroje obsah
-# Vystup: vraci int_source a int_input v tomto poradi, kde je bud prazdny retezec indikujici stdin nebo nazev
-# souboru, odkud se ma dany text brat
+# Vystup: vraci int_source, input je přesměrovaný na stdin
 def check_args():
     int_source = ''
     int_input = ''

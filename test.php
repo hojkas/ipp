@@ -335,7 +335,7 @@ class testing {
 /*
 $p = new params;
 $p->check_args($argc, $argv);
-*/
+
 $html = new html;
 $html->title("Test");
 $html->add_result("testik", 2, 2, true, false, true, "nothing");
@@ -356,6 +356,6 @@ $html->add_result("read_simple", 2, 2, true, false, false, NULL);
 $html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
 
 $html->finish();
-
+*/
 
 ?>
