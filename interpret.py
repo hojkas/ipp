@@ -971,21 +971,55 @@ class ProcessSource:
 
     def jumpifeq_func(self):
         # JUMPIFEQ <label> <symb> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<label>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        result = None
+
+        if op1_type == 'nil' or op2_type == 'nil':
+            if op1_type == op2_type:
+                result = True
+            else:
+                result = False
+        elif op1_type != op2_type:
+            print('Typy operandu instrukce JUMPIFEQ (order: ', self.cur_ins.order, ') se neshoduji.', sep='',
+                  file=sys.stderr)
+            exit(53)
+        else:
+            result = (op1_value == op2_value)
+
+        if result:
+            new_index = self.labels.get(self.cur_ins.arg1.value)
+            self.ins_index = new_index
 
     def jumpifneq_func(self):
         # JUMIFNEQ <label> <symb> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<label>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        result = None
+
+        if op1_type == 'nil' or op2_type == 'nil':
+            if op1_type == op2_type:
+                result = False
+            else:
+                result = True
+        elif op1_type != op2_type:
+            print('Typy operandu instrukce JUMPIFEQ (order: ', self.cur_ins.order, ') se neshoduji.', sep='',
+                  file=sys.stderr)
+            exit(53)
+        else:
+            result = (op1_value != op2_value)
+
+        if result:
+            new_index = self.labels.get(self.cur_ins.arg1.value)
+            self.ins_index = new_index
 
     def exit_func(self):
         # EXIT <symb>

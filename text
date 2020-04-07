@@ -1,12 +1,10 @@
 .IPPcode20
-DEFVAR GF@i
-MOVE GF@i string@a
-DEFVAR GF@a
-MOVE GF@a int@68
-INT2CHAR GF@a GF@a
-CONCAT GF@a GF@a GF@i
-WRITE GF@a
+DEFVAR GF@counter
+MOVE GF@counter string@
+LABEL while
+JUMPIFEQ end GF@counter string@aaa
+WRITE GF@counter
 WRITE string@\010
-NOT GF@a bool@true
-OR GF@a GF@a bool@false
-WRITE GF@a
+CONCAT GF@counter GF@counter string@a
+JUMP while
+LABEL end
