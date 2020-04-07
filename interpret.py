@@ -926,21 +926,45 @@ class ProcessSource:
 
     def getchar_func(self):
         # GETCHAR <var> <symb> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+        if op1_type != 'string' or op2_type != 'int':
+            print('Operandy instrukce GETCHAR (order: ', self.cur_ins.order, ') nejsou typu string/int.', sep='',
+                  file=sys.stderr)
+            exit(53)
+
+        if op2_value < 0 or op2_value >= len(op1_value):
+            print('Index', op2_value, 'je mimo rozsah stringu', op1_value, file=sys.stderr)
+            exit(58)
+        res = op1_value[op2_value]
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'string', res)
 
     def setchar_func(self):
         # SETCHAR <var> <symb> <symb>
-        # TODO
         if self.pre_run:
             self.check_cur_args('<var>', '<symb>', '<symb>')
             return
 
-        pass
+        var_type, var_value = self.get_symb_type_value_from_arg(self.cur_ins.arg1)
+        op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
+        op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
+
+        if var_type != 'string' or op1_type != 'int' or op2_type != 'string':
+            print('Operandy instrukce GETCHAR (order: ', self.cur_ins.order, ') nejsou typu string/int.', sep='',
+                  file=sys.stderr)
+            exit(53)
+        if len(op2_value) != 1:
+            print('Arg3 instrukce SETCHAR nema delku 1 (neni char).', file=sys.stderr)
+            exit(53)
+        if op1_value < 0 or op1_value >= len(var_value):
+            print('Index', op1_value, 'je mimo rozsah stringu', var_value, file=sys.stderr)
+            exit(58)
+        var_value = var_value[:op1_value] + op2_value + var_value[(op1_value+1):]
+        self.store_var_type_value_from_arg(self.cur_ins.arg1, 'string', var_value)
 
     def type_func(self):
         # TYPE <var> <symb>
