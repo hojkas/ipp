@@ -282,7 +282,7 @@ def get_instruction(elem):
 
     # kontrola existujiciho opcode
     possible = ['MOVE', 'CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'DEFVAR', 'CALL', 'RETURN', 'PUSHS', 'POPS',
-                'ADD', 'SUB', 'MUL', 'IDIV', 'LG', 'GT', 'EQ', 'AND', 'OR', 'NOT', 'INT2CHAR', 'STRI2INT', 'READ',
+                'ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', 'AND', 'OR', 'NOT', 'INT2CHAR', 'STRI2INT', 'READ',
                 'WRITE', 'CONCAT', 'STRLEN', 'GETCHAR', 'SETCHAR', 'TYPE', 'LABEL', 'JUMP', 'JUMPIFEQ',
                 'JUMPIFNEQ', 'EXIT', 'DPRINT', 'BREAK']
 
@@ -987,13 +987,10 @@ class ProcessSource:
             print('Operandy instrukce GETCHAR (order: ', self.cur_ins.order, ') nejsou typu string/int.', sep='',
                   file=sys.stderr)
             exit(53)
-        if len(op2_value) != 1:
-            print('Arg3 instrukce SETCHAR nema delku 1 (neni char).', file=sys.stderr)
-            exit(53)
         if op1_value < 0 or op1_value >= len(var_value):
             print('Index', op1_value, 'je mimo rozsah stringu', var_value, file=sys.stderr)
             exit(58)
-        var_value = var_value[:op1_value] + op2_value + var_value[(op1_value+1):]
+        var_value = var_value[:op1_value] + op2_value[0] + var_value[(op1_value+1):]
         self.store_var_type_value_from_arg(self.cur_ins.arg1, 'string', var_value)
 
     def type_func(self):
