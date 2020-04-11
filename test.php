@@ -126,7 +126,17 @@ li {
     }
   }
 
-  public function add_result($name, $real_rc, $got_rc, $rc_good, $only_rc, $out_good, $error_log) {
+  public function add_param_info($param) {
+    $ne_rec = "";
+    if(! $param->rec) $ne_rec = "ne";
+    $this->results .= "<br/>\n";
+    $this->center_result_header(2, "Testování probíhá ze složky ".$param->t_dir.", ".$ne_rec."rekurzivně.");
+    if($param->i_only) $this->center_result_header(2, "Interpret.py only.");
+    else if($param->p_only) $this->center_result_header(2, "Parse.php only.");
+    else $this->center_result_header(2, "Parse.php i intepret.py.");
+  }
+
+  public function add_result($name, $rc_good, $only_rc, $out_good, $error_log) {
     if(!$this->is_testing) {
       $this->start_testing();
       $this->is_testing = true;
@@ -174,11 +184,11 @@ class params {
   public $t_dir, $p_dir, $i_dir, $jexamxml, $rec, $p_only, $i_only;
 
   public function __construct() {
-    $this->t_dir = './';
-    $this->p_dir = './';
-    $this->i_dir = './';
+    $this->t_dir = '';
+    $this->p_dir = '';
+    $this->i_dir = '';
     //TODO default merlin value
-    $this->jexamxml = './jexamxml/jexamxml.jar';
+    $this->jexamxml = 'jexamxml/jexamxml.jar';
     //$jexamxml = '/pub/courses/ipp/jexamxml/jexamxml.jar';
 
     $this->rec = false;
@@ -205,42 +215,34 @@ class params {
     if(array_key_exists("int-only", $opt)) $this->i_only = true;
     if(array_key_exists("jexamxml", $opt)) $this->jexamxml = $opt["jexamxml"];
 
-    if($this->i_only && ($this->p_only || array_key_exists("parse-script")) || ($this->p_only && array_key_exists("int-script"))) {
+    if($this->i_only && ($this->p_only || array_key_exists("parse-script", $opt)) || ($this->p_only && array_key_exists("int-script", $opt))) {
       echo "Zakazana kombinace parametru: nelze omezit funkci pouze na parser nebo interpret ",
       "a zaroven uvest parametry pro ten druhy.\n";
       exit(10);
     }
 
-    /*
-    //TODO remove, just debug
-    echo "--- DEBUG INFO\ntest dir: ", $t_dir, "\npars dir: ", $p_dir,
-    "\ninte dir: ", $i_dir, "\njxml dir: ", $jexamxml, "\nrecursive:  ";
-    if($rec) echo "Y\n"; else echo "N\n";
-    echo "parse-only: ";
-    if($p_only) echo "Y\n"; else echo "N\n";
-    echo "int-only:   ";
-    if($i_only) echo "Y\n"; else echo "N\n";
-    echo "---\n\n";
-    */
+    #TODO check if directory without / is mistake, error or okay
+    if(!preg_match("/\/$/", $this->t_dir)) $this->t_dir .= "/";
+    if(!preg_match("/\/$/", $this->p_dir)) $this->p_dir .= "/";
+    if(!preg_match("/\/$/", $this->i_dir)) $this->i_dir .= "/";
   }
 }
 
-//start of dead code
-/*
-function extract_files($files, $dir) {
+function extract_files($files, $dir, $rec) {
+  //TODO delete this line
   if(preg_match("/GENERATED/", $dir)) return $files; //radek vynechava slozku GENERATED
-  $last = "";
   foreach (scandir($dir) as $file) {
       if ($file !== '.' && $file !== '..') {
         if(is_dir($dir.$file)) {
-          $new_dir = $dir.$file."/";
-          $files = extract_files($files, $new_dir);
+          if($rec) {
+            $new_dir = $dir.$file."/";
+            $files = extract_files($files, $new_dir, $rec);
+          }
         }
         else {
-          $file = preg_replace("/\.(rc|out|src|in)$/", "", $file);
-          if($last !== $file) {
+          if(preg_match("/.src$/", $file)) {
+            $file = preg_replace("/.src$/", "", $file);
             $files[] = $dir.$file;
-            $last = $file;
           }
         }
       }
@@ -248,6 +250,8 @@ function extract_files($files, $dir) {
   return $files;
 }
 
+//start of dead code
+/*
 function is_testable($file) {
   if(is_readable($file.".rc") && is_readable($file.".src")) return true;
   else return false;
@@ -327,33 +331,108 @@ function test_all($files) {
   }
 }*/
 //end of dead code
-class testing {
 
+class testing {
+  private $files;
+  private $files_i;
+  private $files_n;
+  private $p;
+
+  public function __construct($p) {
+    $this->files = extract_files([],$p->t_dir, $p->rec);
+    $this->files_n = sizeof($this->files);
+    $this->files_i = 0;
+    $this->p = $p;
+  }
+
+  private function test_one_as_ponly($file) {
+    //TODO
+    print("Parse only: ".$file."\n");
+  }
+
+  private function test_one_as_ionly($file) {
+    $clean_in = false;
+    $clean_out = false;
+    $clean_rc = false;
+    if(!file_exists($file.".in")) {
+      $clean_in = true;
+      shell_exec("touch ipp_testing_temp.in");
+      $in = "ipp_testing_temp.in";
+    }
+    else {
+      $in = $file.".in";
+    }
+    if(!file_exists($file.".out")) {
+      $clean_out = true;
+      shell_exec("touch ipp_testing_temp.out");
+      $out = "ipp_testing_temp.out";
+    }
+    else {
+      $out = $file.".out";
+    }
+    if(!file_exists($file.".rc")) {
+      $clean_rc = true;
+      shell_exec("echo \"0\" >ipp_testing_temp.rc");
+      $rc = "ipp_testing_temp.rc";
+    }
+    else {
+      $rc = $file.".rc";
+    }
+    //konec pripravy souboru
+
+    echo "DEBUG\n";
+    echo "IN:  ", $in, "\n";
+    echo "OUT: ", $out, "\n";
+    echo "RC:  ", $rc, "\n";
+    //shell_exec("python3 ".$this->p->i_dir." --source=".$file.".src --input=".$input." >ipp_testing_out");
+    //shell_exec("echo $? >ipp_testing_rc");
+
+    if($clean_in) shell_exec("rm ipp_testing_temp.in");
+    if($clean_out) shell_exec("rm ipp_testing_temp.out");
+    if($clean_rc) shell_exec("rm ipp_testing_temp.rc");
+  }
+
+  private function test_one_as_both($file) {
+    //TODO
+    print("Both: ".$file."\n");
+  }
+
+  public function test() {
+    if(empty($this->files)) return;
+    while($this->files_i < $this->files_n) {
+      if($this->p->i_only) $this->test_one_as_ionly($this->files[$this->files_i]);
+      else if($this->p->p_only) $this->test_one_as_ponly($this->files[$this->files_i]);
+      else $this->test_one_as_both($this->files[$this->files_i]);
+      $this->files_i++;
+    }
+  }
 }
 
-//main
-/*
 $p = new params;
 $p->check_args($argc, $argv);
-
+$testing = new testing($p);
+$testing->test();
+/*
 $html = new html;
 $html->title("Test");
-$html->add_result("testik", 2, 2, true, false, true, "nothing");
-$html->add_result("read_simple", 2, 2, true, false, false, NULL);
-$html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
-$html->add_result("hey", 2, 2, true, true, false, "Hello this is a message, cool right? Return code was 1, but expected 0. That sucks, rigth?");
-$html->add_result("testik", 2, 2, true, false, true, "nothing");
-$html->add_result("read_simple", 2, 2, true, false, false, NULL);
-$html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
-$html->add_result("testik", 2, 2, true, false, true, "nothing");
-$html->add_result("read_simple", 2, 2, true, false, false, NULL);
-$html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
-$html->add_result("testik", 2, 2, true, false, true, "nothing");
-$html->add_result("read_simple", 2, 2, true, false, false, NULL);
-$html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
-$html->add_result("testik", 2, 2, true, false, true, "nothing");
-$html->add_result("read_simple", 2, 2, true, false, false, NULL);
-$html->add_result("write_simple", 2, 2, true, true, false, "nothing2");
+$html->add_param_info($p);
+
+$html->add_result("testik", true, false, true, "nothing");
+$html->add_result("read_simple", true, false, false, NULL);
+$html->add_result("write_simple", true, true, false, "nothing2");
+$html->add_result("hey", true, true, false, "Hello this is a message, cool right? Return code was 1, but expected 0. That sucks, rigth?");
+$html->add_result("testik", true, false, true, "nothing");
+$html->add_result("read_simple", true, false, false, NULL);
+$html->add_result("write_simple", true, true, false, "nothing2");
+$html->add_result("testik", true, false, true, "nothing");
+$html->add_result("read_simple",true, false, false, NULL);
+$html->add_result("write_simple", true, true, false, "nothing2");
+$html->add_result("testik", true, false, true, "nothing");
+$html->add_result("read_simple", true, false, false, NULL);
+$html->add_result("write_simple", true, true, false, "nothing2");
+$html->add_result("testik", true, false, true, "nothing");
+$html->add_result("read_simple", true, false, false, NULL);
+$html->add_result("write_simple", true, true, false, "nothing2");
 
 $html->finish();
 */
