@@ -30,6 +30,9 @@ h2 {
   padding: 0px;
   margin: 5px;
 }
+code {
+  background: red;
+}
 table {
   width: 60%;
   margin-left: auto;
@@ -110,11 +113,21 @@ li {
   private function count_results() {
     $this->results .= "<br/>\n";
     $this->center_result_header(2, "Správné návratové kódy:");
-    $this->center_result_header(2, $this->good_rc."/".$this->total_rc);
-    $this->results .= "<div class=\"meter\" style=\"margin-left:auto; margin-right:auto\">\n  <span style=\"width: ".(($this->good_rc/$this->total_rc)*100)."%\"></span>\n</div>";
+    if($this->total_rc == 0) {
+      $this->center_result_header(2, "Žádné nebyly otestovány");
+    }
+    else {
+      $this->center_result_header(2, $this->good_rc."/".$this->total_rc);
+      $this->results .= "<div class=\"meter\" style=\"margin-left:auto; margin-right:auto\">\n  <span style=\"width: ".(($this->good_rc/$this->total_rc)*100)."%\"></span>\n</div>";
+    }
     $this->center_result_header(2, "Správné výstupy:");
-    $this->center_result_header(2, $this->good_out."/".$this->total_out."\n");
-    $this->results .= "<div class=\"meter\" style=\"margin-left:auto; margin-right:auto\">\n  <span style=\"width: ".(($this->good_out/$this->total_out)*100)."%\"></span>\n</div>";
+    if($this->total_out == 0) {
+      $this->center_result_header(2, "Žádné nebyly otestovány");
+    }
+    else {
+      $this->center_result_header(2, $this->good_out."/".$this->total_out."\n");
+      $this->results .= "<div class=\"meter\" style=\"margin-left:auto; margin-right:auto\">\n  <span style=\"width: ".(($this->good_out/$this->total_out)*100)."%\"></span>\n</div>";
+    }
     $this->results .= "<br/>\n";
   }
 
@@ -185,8 +198,8 @@ class params {
 
   public function __construct() {
     $this->t_dir = '';
-    $this->p_dir = '';
-    $this->i_dir = '';
+    $this->p_dir = 'parse.php';
+    $this->i_dir = 'interpret.py';
     //TODO default merlin value
     $this->jexamxml = 'jexamxml/jexamxml.jar';
     //$jexamxml = '/pub/courses/ipp/jexamxml/jexamxml.jar';
@@ -220,11 +233,6 @@ class params {
       "a zaroven uvest parametry pro ten druhy.\n";
       exit(10);
     }
-
-    #TODO check if directory without / is mistake, error or okay
-    if(!preg_match("/\/$/", $this->t_dir)) $this->t_dir .= "/";
-    if(!preg_match("/\/$/", $this->p_dir)) $this->p_dir .= "/";
-    if(!preg_match("/\/$/", $this->i_dir)) $this->i_dir .= "/";
   }
 }
 
@@ -337,12 +345,14 @@ class testing {
   private $files_i;
   private $files_n;
   private $p;
+  private $html;
 
-  public function __construct($p) {
+  public function __construct($p, $html) {
     $this->files = extract_files([],$p->t_dir, $p->rec);
     $this->files_n = sizeof($this->files);
     $this->files_i = 0;
     $this->p = $p;
+    $this->html = $html;
   }
 
   private function test_one_as_ponly($file) {
@@ -380,13 +390,37 @@ class testing {
     }
     //konec pripravy souboru
 
-    echo "DEBUG\n";
-    echo "IN:  ", $in, "\n";
-    echo "OUT: ", $out, "\n";
-    echo "RC:  ", $rc, "\n";
-    //shell_exec("python3 ".$this->p->i_dir." --source=".$file.".src --input=".$input." >ipp_testing_out");
-    //shell_exec("echo $? >ipp_testing_rc");
+    //spusteni programu a porovnávání
+    shell_exec("python3 ".$this->p->i_dir." --source=".$file.".src --input=".$in." >ipp_testing.out 2>ipp_testing_err_log");
+    shell_exec("echo $? >ipp_testing.rc");
+    //shell_exec("diff ipp_testing_out ".$out." >/dev/null");
+    shell_exec("diff ipp_testing.rc ".$rc." >/dev/null");
+    $diff_rc = shell_exec("echo $?");
 
+    if($diff_rc == 2) {
+      fprint(STDERR, "Interni chyba diff u testu ".$file);
+      goto clean_up;
+    }
+
+    //vytvori pouze filename bez cesty pro ucely vypisu
+    $file_name = explode('/', $file);
+    $file_name = end($file_name);
+
+    if($diff_rc == 0) {
+      $expected_rc = shell_exec("cat ".$rc);
+      $got_rc = shell_exec("cat ipp_testing.rc");
+      $err_log = "Očekáván návratový kód: <code>".$expected_rc."</code> Skutečný návratový kód: <code>".$got_rc."</code>";
+      $this->html->add_result($file_name, false, true, false, $err_log);
+    }
+    else {
+
+    }
+
+    //vycisteni souboru
+    clean_up:
+    if(file_exists("ipp_testing_err_log")) shell_exec("rm ipp_testing_err_log");
+    if(file_exists("ipp_testing.out")) shell_exec("rm ipp_testing.out");
+    //if(file_exists("ipp_testing.rc")) shell_exec("rm ipp_testing.rc");
     if($clean_in) shell_exec("rm ipp_testing_temp.in");
     if($clean_out) shell_exec("rm ipp_testing_temp.out");
     if($clean_rc) shell_exec("rm ipp_testing_temp.rc");
@@ -410,13 +444,17 @@ class testing {
 
 $p = new params;
 $p->check_args($argc, $argv);
-$testing = new testing($p);
-$testing->test();
-/*
+
 $html = new html;
 $html->title("Test");
 $html->add_param_info($p);
 
+$testing = new testing($p, $html);
+$testing->test();
+
+$html->finish();
+
+/*
 $html->add_result("testik", true, false, true, "nothing");
 $html->add_result("read_simple", true, false, false, NULL);
 $html->add_result("write_simple", true, true, false, "nothing2");
@@ -433,8 +471,6 @@ $html->add_result("write_simple", true, true, false, "nothing2");
 $html->add_result("testik", true, false, true, "nothing");
 $html->add_result("read_simple", true, false, false, NULL);
 $html->add_result("write_simple", true, true, false, "nothing2");
-
-$html->finish();
 */
 
 ?>
