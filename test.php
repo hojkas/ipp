@@ -18,7 +18,16 @@ class html {
     $this->start = "<!DOCTYPE html>\n<html>\n<head>\n<title>";
     $this->title = "untitled";
     $this->start_b = "</title>\n";
-    $this->style = "<style>\n".
+    $this->style = "<script>
+function toggle() {
+ if( document.getElementsByClassName(\"hidethis\").style.display=='none' ){
+   document.getElementsByClassName(\"hidethis\").style.display = '';
+ }else{
+   document.getElementsByClassName(\"hidethis\").style.display = 'none';
+ }
+}
+</script>
+<style>\n".
 ".header {
   padding: 10px;
   text-align: center;
@@ -31,10 +40,10 @@ h2 {
   margin: 5px;
 }
 code {
-  background: red;
+  background: #cfcfcf;
 }
 table {
-  width: 60%;
+  width: 80%;
   margin-left: auto;
   margin-right: auto;
   border-collapse: collapse;
@@ -55,7 +64,16 @@ li {
   padding: 10px;
 }
 :target {
-  background: #cfcfcf;
+  -webkit-animation: target-fade 6s 1;
+  -moz-animation: target-fade 6s 1;
+}
+@-webkit-keyframes target-fade {
+    0% { background-color: #cfcfcf }
+    100% { background-color: rgba(0,0,0,0); }
+}
+@-moz-keyframes target-fade {
+    0% { background-color: #cfcfcf }
+    100% { background-color: rgba(0,0,0,0); }
 }
 .meter {
   border: 2px solid black;
@@ -105,7 +123,7 @@ li {
   }
 
   private function start_testing() {
-    $this->body .= "<table>\n".
+    $this->body .= "<p align=\"center\"><button onClick=\"toggle();\">Skrýt úspěšné testy</button></p>\n<table>\n".
     " <tr>\n    <th>Název</th>\n   <th>Správný rc</th>\n".
     "   <th>Správný output</th>\n     <th>Podrobněji chyby</th>\n </tr>\n";
   }
@@ -162,9 +180,10 @@ li {
       if($out_good) $this->good_out++;
     }
 
-    $this->body .= "  <tr>\n    <th style=\"background-color:";
-    if($rc_good && ($only_rc || $out_good)) $this->body .= "#00ba06\"";
-    else $this->body .= "#ff2200\"";
+    $this->body .= "  <tr";
+    $this->body .= "";
+    if($rc_good && ($only_rc || $out_good)) $this->body .= " id=\"hidethis\">\n    <th style=\"background-color:#00ba06\"";
+    else $this->body .= ">\n    <th style=\"background-color:#ff2200\"";
     $this->body .= ">".$name."</th>\n";
 
     if($rc_good) $this->body .= "   <th>ANO</th>\n";
@@ -177,7 +196,7 @@ li {
     if(empty($error_log)) $this->body .= "    <th>-</th>\n";
     else {
       $this->err_cnt++;
-      $this->err_log .= "<li id=\"err_".$this->err_cnt."\">".$error_log."</li>\n";
+      $this->err_log .= "<li id=\"err_".$this->err_cnt."\">".$this->err_cnt." ".$error_log."</li>\n";
       $this->body .= "    <th><a href=#err_".$this->err_cnt.">[".$this->err_cnt."]</th>";
     }
 
@@ -391,11 +410,9 @@ class testing {
     //konec pripravy souboru
 
     //spusteni programu a porovnávání
-    shell_exec("python3 ".$this->p->i_dir." --source=".$file.".src --input=".$in." >ipp_testing.out 2>ipp_testing_err_log");
-    shell_exec("echo $? >ipp_testing.rc");
-    //shell_exec("diff ipp_testing_out ".$out." >/dev/null");
-    shell_exec("diff ipp_testing.rc ".$rc." >/dev/null");
-    $diff_rc = shell_exec("echo $?");
+    shell_exec("python3 ".$this->p->i_dir." --source=".$file.".src --input=".
+    $in." >ipp_testing.out 2>ipp_testing_err_log; echo $? >ipp_testing.rc");
+    $diff_rc = shell_exec("diff -w ipp_testing.rc ".$rc." >/dev/null; echo $?");
 
     if($diff_rc == 2) {
       fprint(STDERR, "Interni chyba diff u testu ".$file);
@@ -406,38 +423,182 @@ class testing {
     $file_name = explode('/', $file);
     $file_name = end($file_name);
 
-    if($diff_rc == 0) {
+    $got_rc = shell_exec("cat ipp_testing.rc");
+    if($diff_rc == 1) {
       $expected_rc = shell_exec("cat ".$rc);
-      $got_rc = shell_exec("cat ipp_testing.rc");
-      $err_log = "Očekáván návratový kód: <code>".$expected_rc."</code> Skutečný návratový kód: <code>".$got_rc."</code>";
+      $err_log = "Očekáván návratový kód: <code>".$expected_rc.
+      "</code> Skutečný návratový kód: <code>".$got_rc."</code>";
       $this->html->add_result($file_name, false, true, false, $err_log);
     }
+    elseif($got_rc != 0) {
+      $this->html->add_result($file_name, true, true, false, NULL);
+    }
     else {
+      //diff na rc probehl v poradku
+      $diff_rc = shell_exec("diff ipp_testing.out ".$out." >/dev/null; echo $?");
 
+      if($diff_rc == 2) {
+        fprint(STDERR, "Interni chyba diff u testu ".$file);
+        goto clean_up;
+      }
+
+      if($diff_rc == 1) {
+        $expected_out = shell_exec("cat ".$out);
+        $got_out = shell_exec("cat ipp_testing.out");
+        $err_log = "Očekáván výstup: <code>".$expected_out.
+        "</code> Skutečný výstup: <code>".$got_out."</code>";
+        $this->html->add_result($file_name, true, false, false, $err_log);
+      }
+      else {
+        //diff na out probehl v poradku
+        $this->html->add_result($file_name, true, false, true, NULL);
+      }
     }
 
     //vycisteni souboru
     clean_up:
     if(file_exists("ipp_testing_err_log")) shell_exec("rm ipp_testing_err_log");
     if(file_exists("ipp_testing.out")) shell_exec("rm ipp_testing.out");
-    //if(file_exists("ipp_testing.rc")) shell_exec("rm ipp_testing.rc");
+    if(file_exists("ipp_testing.rc")) shell_exec("rm ipp_testing.rc");
     if($clean_in) shell_exec("rm ipp_testing_temp.in");
     if($clean_out) shell_exec("rm ipp_testing_temp.out");
     if($clean_rc) shell_exec("rm ipp_testing_temp.rc");
   }
 
   private function test_one_as_both($file) {
-    //TODO
-    print("Both: ".$file."\n");
+    $clean_in = false;
+    $clean_out = false;
+    $clean_rc = false;
+    if(!file_exists($file.".in")) {
+      $clean_in = true;
+      shell_exec("touch ipp_testing_temp.in");
+      $in = "ipp_testing_temp.in";
+    }
+    else {
+      $in = $file.".in";
+    }
+    if(!file_exists($file.".out")) {
+      $clean_out = true;
+      shell_exec("touch ipp_testing_temp.out");
+      $out = "ipp_testing_temp.out";
+    }
+    else {
+      $out = $file.".out";
+    }
+    if(!file_exists($file.".rc")) {
+      $clean_rc = true;
+      shell_exec("echo \"0\" >ipp_testing_temp.rc");
+      $rc = "ipp_testing_temp.rc";
+    }
+    else {
+      $rc = $file.".rc";
+    }
+    //konec pripravy souboru
+
+    //vytvori pouze filename bez cesty pro ucely vypisu
+    $file_name = explode('/', $file);
+    $file_name = end($file_name);
+    $expected_rc = shell_exec("cat ".$rc);
+
+    //spusteni programu a porovnávání
+    shell_exec("php7.4 parse.php <".$file.".src >ipp_testing_mid.out; echo $? >ipp_testing_mid.rc");
+    $diff_rc = shell_exec("diff -w ipp_testing_mid.rc ".$rc." >/dev/null; echo $?");
+
+    if($diff_rc == 2) {
+      fprint(STDERR, "Interni chyba diff u testu ".$file);
+      goto clean_up;
+    }
+
+    $got_mid_rc = shell_exec("cat ipp_testing_mid.rc");
+    if($diff_rc == 1) {
+      if ($got_mid_rc != 0) {
+        $err_log = "[chyba nastala již u parse.php] Očekáván návratový kód: <code>".$expected_rc.
+        "</code> Skutečný návratový kód: <code>".$got_mid_rc."</code>";
+        $this->html->add_result($file_name, false, true, false, $err_log);
+        goto clean_up;
+      }
+    }
+    elseif($got_mid_rc != 0) {
+      $this->html->add_result($file_name, true, true, false, NULL);
+      goto clean_up;
+    }
+
+    //testovani interpret.py, nemusi se sem dostat pokud uz parse vratil nenulovy rc
+    shell_exec("python3 ".$this->p->i_dir." --source=ipp_testing_mid.out --input=".
+    $in." >ipp_testing.out 2>ipp_testing_err_log; echo $? >ipp_testing.rc");
+    $diff_rc = shell_exec("diff -w ipp_testing.rc ".$rc." >/dev/null; echo $?");
+    $int_err = shell_exec("cat ipp_testing_err_log");
+
+    if($diff_rc == 2) {
+      fprint(STDERR, "Interni chyba diff u testu ".$file);
+      goto clean_up;
+    }
+
+    $got_rc = shell_exec("cat ipp_testing.rc");
+    if($diff_rc == 1) {
+      $err_log = "Očekáván návratový kód: <code>".$expected_rc.
+      "</code> Skutečný návratový kód: <code>".$got_rc."</code>";
+      if(!empty($int_err)) $err_log .= "Chybové hlášení z interpretu: <code>".
+        $int_err."</code>";
+      if($got_rc == 31) {
+        $mid_out = shell_exec("cat ipp_testing_mid.out");
+        $err_log .= "XML vstup z parse.php nebyl v pořádku. XML:".
+        " <code>".$mid_out."</code>";
+      }
+      $this->html->add_result($file_name, false, true, false, $err_log);
+    }
+    elseif($got_rc != 0) {
+      $this->html->add_result($file_name, true, true, false, NULL);
+    }
+    else {
+      //diff na rc probehl v poradku
+      $diff_rc = shell_exec("diff ipp_testing.out ".$out." >/dev/null; echo $?");
+
+      if($diff_rc == 2) {
+        fprint(STDERR, "Interni chyba diff u testu ".$file);
+        goto clean_up;
+      }
+
+      if($diff_rc == 1) {
+        $expected_out = shell_exec("cat ".$out);
+        $got_out = shell_exec("cat ipp_testing.out");
+        $err_log = "Očekáván výstup: <code>".$expected_out.
+        "</code> Skutečný výstup: <code>".$got_out."</code>";
+        $this->html->add_result($file_name, true, false, false, $err_log);
+      }
+      else {
+        //diff na out probehl v poradku
+        $this->html->add_result($file_name, true, false, true, NULL);
+      }
+    }
+
+    //vycisteni souboru
+    clean_up:
+    if(file_exists("ipp_testing_err_log")) shell_exec("rm ipp_testing_err_log");
+    if(file_exists("ipp_testing.out")) shell_exec("rm ipp_testing.out");
+    if(file_exists("ipp_testing.rc")) shell_exec("rm ipp_testing.rc");
+    if(file_exists("ipp_testing_mid.rc")) shell_exec("rm ipp_testing_mid.rc");
+    if(file_exists("ipp_testing_mid.out")) shell_exec("rm ipp_testing_mid.out");
+    if($clean_in) shell_exec("rm ipp_testing_temp.in");
+    if($clean_out) shell_exec("rm ipp_testing_temp.out");
+    if($clean_rc) shell_exec("rm ipp_testing_temp.rc");
   }
 
   public function test() {
+    //TODO delete this bit
+    $total = sizeof($this->files);
+    $count = 0;
+
     if(empty($this->files)) return;
     while($this->files_i < $this->files_n) {
       if($this->p->i_only) $this->test_one_as_ionly($this->files[$this->files_i]);
       else if($this->p->p_only) $this->test_one_as_ponly($this->files[$this->files_i]);
       else $this->test_one_as_both($this->files[$this->files_i]);
       $this->files_i++;
+
+      //TODO delete after
+      $count++;
+      fprintf(STDERR, "Testing ".$count."/".$total."\r");
     }
   }
 }
