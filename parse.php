@@ -19,7 +19,7 @@ $i_array = array(
   array("SUB",        "var", "symb", "symb"),
   array("MUL",        "var", "symb", "symb"),
   array("IDIV",       "var", "symb", "symb"),
-  array("LG",         "var", "symb", "symb"),
+  array("LT",         "var", "symb", "symb"),
   array("GT",         "var", "symb", "symb"),
   array("EQ",         "var", "symb", "symb"),
   array("AND",        "var", "symb", "symb"),

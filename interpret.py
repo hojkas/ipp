@@ -416,7 +416,7 @@ class ProcessSource:
             return v_type, value
         elif re.search(r'^TF@', var):
             if self.tf is None:
-                print('Ramec TF neni inicializovan.')
+                print('Ramec TF neni inicializovan.', file=sys.stderr)
                 exit(55)
             searched = var.split('@')[1]
             found, v_type, value = self.tf.find_var(searched)
@@ -432,7 +432,7 @@ class ProcessSource:
             return v_type, value
         elif re.search(r'^LF@', var):
             if not self.lf:
-                print('Ramec LF neni inicializovan.')
+                print('Ramec LF neni inicializovan.', file=sys.stderr)
                 exit(55)
             searched = var.split('@')[1]
             found, v_type, value = self.lf[-1].find_var(searched)
@@ -461,7 +461,7 @@ class ProcessSource:
                 exit(54)
         elif re.search(r'^TF@', var):
             if self.tf is None:
-                print('Ramec TF neni inicializovan.')
+                print('Ramec TF neni inicializovan.', file=sys.stderr)
                 exit(55)
             searched = var.split('@')[1]
             found = self.tf.change_type_value(searched, v_type, value)
@@ -470,7 +470,7 @@ class ProcessSource:
                 exit(54)
         elif re.search(r'^LF@', var):
             if not self.lf:
-                print('Ramec LF neni inicializovan.')
+                print('Ramec LF neni inicializovan.', file=sys.stderr)
                 exit(55)
             searched = var.split('@')[1]
             found = self.lf[-1].change_type_value(searched, v_type, value)
@@ -921,6 +921,8 @@ class ProcessSource:
         t, value = self.get_symb_type_value_from_arg(self.cur_ins.arg1)
         if t == 'nil':
             value = 'nil'
+        elif t == 'bool':
+            value = str(value).lower()
         else:
             value = str(value)
         my_out_print(value)
@@ -1141,7 +1143,7 @@ class ProcessSource:
             exit(53)
         if value < 0 or value > 49:
             print('Exit zavolan s hodnotou mimo interval <0,49>', file=sys.stderr)
-            exit(53)
+            exit(57)
         exit(value)
 
     def dprint_func(self):

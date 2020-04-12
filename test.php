@@ -19,13 +19,20 @@ class html {
     $this->title = "untitled";
     $this->start_b = "</title>\n";
     $this->style = "<script>
-function toggle() {
- if( document.getElementsByClassName(\"hidethis\").style.display=='none' ){
-   document.getElementsByClassName(\"hidethis\").style.display = '';
- }else{
-   document.getElementsByClassName(\"hidethis\").style.display = 'none';
- }
-}
+    function toggle() {
+      var elements = document.getElementsByClassName('hidethis');
+       Array.prototype.forEach.call(elements, function(element){
+           element.style.display = \"none\";
+       });
+       return true;
+    }
+    function toggle_on() {
+      var elements = document.getElementsByClassName('hidethis');
+       Array.prototype.forEach.call(elements, function(element){
+           element.style.display = \"\";
+       });
+       return true;
+    }
 </script>
 <style>\n".
 ".header {
@@ -123,8 +130,10 @@ li {
   }
 
   private function start_testing() {
-    $this->body .= "<p align=\"center\"><button onClick=\"toggle();\">Skrýt úspěšné testy</button></p>\n<table>\n".
-    " <tr>\n    <th>Název</th>\n   <th>Správný rc</th>\n".
+    $this->body .= "<p align=\"center\"><button style=\"font-size:20px\" ".
+    "onClick=\"toggle();\">Skrýt úspěšné testy</button><button style=\"font-".
+    "size:20px\" onClick=\"toggle_on();\">Zobrazit všechny testy</button></p>".
+    "\n<table>\n <tr>\n    <th>Název</th>\n   <th>Správný rc</th>\n".
     "   <th>Správný output</th>\n     <th>Podrobněji chyby</th>\n </tr>\n";
   }
 
@@ -182,12 +191,12 @@ li {
 
     $this->body .= "  <tr";
     $this->body .= "";
-    if($rc_good && ($only_rc || $out_good)) $this->body .= " id=\"hidethis\">\n    <th style=\"background-color:#00ba06\"";
+    if($rc_good && ($only_rc || $out_good)) $this->body .= " class=\"hidethis\">\n    <th style=\"background-color:#00ba06\"";
     else $this->body .= ">\n    <th style=\"background-color:#ff2200\"";
     $this->body .= ">".$name."</th>\n";
 
     if($rc_good) $this->body .= "   <th>ANO</th>\n";
-    else $this->body .= "   <th style=\"font-color:#ff2200\">NE</th>";
+    else $this->body .= "   <th style=\"color:#ff2200\">NE</th>";
 
     if($out_good) $this->body .= "   <th>ANO</th>\n";
     else if($only_rc) $this->body .= "   <th>-</th>\n";
