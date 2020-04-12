@@ -352,6 +352,9 @@ class ProcessSource:
         # seradi list objektu instruction podle order hodnoty
         self.ins.sort(key=lambda x: x.order)
 
+        if not self.ins:
+            exit(0);
+
         # projede ins podle hodnoty order, zkontroluje, jestli nejsou hodnoty < 1 nebo duplicitni
         if self.ins[0].order < 1:
             print('Order atribut instrukce nesmi zacinat cislem mensim nez 1.', file=sys.stderr)
@@ -920,7 +923,7 @@ class ProcessSource:
 
         t, value = self.get_symb_type_value_from_arg(self.cur_ins.arg1)
         if t == 'nil':
-            value = 'nil'
+            value = ''
         elif t == 'bool':
             value = str(value).lower()
         else:
@@ -1012,7 +1015,7 @@ class ProcessSource:
                     res = self.gf.find_var(name)
                     if not res[0]:
                         print('Promenna', name, 'v GF neexistuje.', file=sys.stderr)
-                        exit(52)
+                        exit(54)
                     # res = found, type, value
                     if not res[1]:
                         res_type = ''
@@ -1025,7 +1028,7 @@ class ProcessSource:
                     res = self.tf.find_var(name)
                     if not res[0]:
                         print('Promenna', name, 'v TF neexistuje.', file=sys.stderr)
-                        exit(52)
+                        exit(54)
 
                     # res = found, type, value
                     if not res[1]:
@@ -1039,7 +1042,7 @@ class ProcessSource:
                     res = self.lf[-1].find_var(name)
                     if not res[0]:
                         print('Promenna ', name, 'v LF neexistuje.', file=sys.stderr)
-                        exit(52)
+                        exit(54)
 
                     # res = found, type, value
                     if not res[1]:
@@ -1083,6 +1086,8 @@ class ProcessSource:
         # JUMPIFEQ <label> <symb> <symb>
         if self.pre_run:
             self.check_cur_args('<label>', '<symb>', '<symb>')
+            # TODO this should be but is causing more problems than is usefull
+            # self.labels_to_check.append(self.cur_ins.arg1.value)
             return
 
         op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
@@ -1109,6 +1114,8 @@ class ProcessSource:
         # JUMIFNEQ <label> <symb> <symb>
         if self.pre_run:
             self.check_cur_args('<label>', '<symb>', '<symb>')
+            # TODO this should be here
+            # self.labels_to_check.append(self.cur_ins.arg1.value)
             return
 
         op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
