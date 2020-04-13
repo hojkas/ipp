@@ -205,8 +205,8 @@ li {
     if(empty($error_log)) $this->body .= "    <th>-</th>\n";
     else {
       $this->err_cnt++;
-      $this->err_log .= "<li id=\"err_".$this->err_cnt."\">".$this->err_cnt." ".$error_log."</li>\n";
-      $this->body .= "    <th><a href=#err_".$this->err_cnt.">[".$this->err_cnt."]</th>";
+      $this->err_log .= "<li id=\"err_".$this->err_cnt."\"><a href=#err_th_".$this->err_cnt.">[".$this->err_cnt."]</a> ".$error_log."</li>\n";
+      $this->body .= "    <th id=\"err_th_".$this->err_cnt."\"><a href=#err_".$this->err_cnt.">[".$this->err_cnt."]</th>";
     }
 
     $this->body .= "  </tr>\n";
@@ -228,9 +228,7 @@ class params {
     $this->t_dir = '';
     $this->p_dir = 'parse.php';
     $this->i_dir = 'interpret.py';
-    //TODO default merlin value
-    $this->jexamxml = 'jexamxml/jexamxml.jar';
-    //$jexamxml = '/pub/courses/ipp/jexamxml/jexamxml.jar';
+    $jexamxml = '/pub/courses/ipp/jexamxml/jexamxml.jar';
 
     $this->rec = false;
     $this->p_only = false;
@@ -243,8 +241,15 @@ class params {
     $opt = getopt(NULL, $long_opts);
 
     if(array_key_exists("help", $opt)) {
-      //TODO real hlaseni
-      echo "temp help text\n";
+      echo "Test.php parametry:\n".
+      "--help vypise napovedu (kterou vidite prave ted)\n".
+      "--directory=path testy bude skript hledat v zadanem adresari (implicitne hleda v aktualnim adresari)\n".
+      "--recursive testy bude skript hledat i rekurzivne v podadresarich zadaneho adresare\n".
+      "--parse-script=file soubor se skriptem v PHP7.4 pro analyzu zdrojoveho kodu v IPPcode20 (implicitne hleda v aktualnim adresari)\n".
+      "--int-script=file soubor se skriptem v Python 3.8 pro interpret XML reprezentace kodu v IPPcode20 (implicitne hleda v aktualnim adresari)\n".
+      "--parse-only bude testovan pouze skript pro analyzu zdrojoveho kodu (parse.php)\n".
+      "--int-only bude testovan pouze skript pro interpretaci (interpret.py)\n".
+      "--jexamxml=file soubor s JAR balickem s nastrojem A7Soft JExamXML, implicitni je cesta /pub/courses/ipp/jexamxml/jexamxml.jar\n";
       exit(0);
     }
 
@@ -265,8 +270,6 @@ class params {
 }
 
 function extract_files($files, $dir, $rec) {
-  //TODO delete this line
-  if(preg_match("/GENERATED/", $dir)) return $files; //radek vynechava slozku GENERATED
   foreach (scandir($dir) as $file) {
       if ($file !== '.' && $file !== '..') {
         if(is_dir($dir.$file)) {
@@ -286,88 +289,6 @@ function extract_files($files, $dir, $rec) {
   return $files;
 }
 
-//start of dead code
-/*
-function is_testable($file) {
-  if(is_readable($file.".rc") && is_readable($file.".src")) return true;
-  else return false;
-}
-
-function has_out($file) {
-  if(is_readable($file.".out")) return true;
-  else return false;
-}
-
-function test_one_rc($file) {
-  global $error_log;
-  exec('php parse.php <'.$file.'.src 2>/dev/null', $output, $rc);
-  $real_rc = file_get_contents($file.'.rc');
-  $real_rc = trim($real_rc);
-  if($rc == $real_rc) return true;
-  else {
-    $error_log[] = 'Got '.$rc.' expected '.$real_rc.' in test '.$file;
-    return false;
-  }
-}
-
-//non working, stacks diffs
-function test_one_out($file) {
-  global $error_log;
-  exec('php parse.php <'.$file.'.src >my_out 2>/dev/null', $output, $rc);
-  $real_rc = file_get_contents($file.'.rc');
-  $real_rc = trim($real_rc);
-  exec('java -jar ./jexamxml/jexamxml.jar '.$file.'.out my_out diffs.xml -D ./jexamxml/options', $xml_out, $xml_rc);
-  //var_dump($xml_rc);
-  shell_exec('rm my_out');
-  $xml_rc = trim($xml_rc);
-
-  if($rc === $real_rc && $xml_rc === 0) return true;
-  else {
-    if($rc !== $real_rc) $error_log[] = 'Got '.$rc.' expected '.$real_rc.' in test '.$file;
-    if($xml_rc !== 0) {
-      if(is_readable('diffs.xml')) {
-        $diffs = file_get_contents('diffs.xml');
-        $error_log[] = 'XML was different: '.$diffs;
-        shell_exec('rm diffs.xml');
-      }
-    }
-    return false;
-  }
-}
-
-function test_all($files) {
-  global $error_log;
-  $count = 0;
-  $total = 0;
-  $out = 0;
-  $outable = 0;
-  $size = sizeof($files);
-  foreach($files as $file) {
-    echo "\rTesting ", $total+1, " / ", $size;
-    if(is_testable($file)) {
-      if(has_out($file)) {
-        if(test_one_out($file)) {
-          $out++;
-          $count++;
-        }
-        $outable++;
-        $total++;
-      }
-      else {
-        if(test_one_rc($file)) $count++;
-        $total++;
-      //}
-    }
-  }
-  echo "\n";
-  printf("Return codes:\n%d / %d\n", $count, $total);
-  echo "ERR LOG:\n\n";
-  foreach($error_log as $err) {
-    echo $err, "\n";
-  }
-}*/
-//end of dead code
-
 class testing {
   private $files;
   private $files_i;
@@ -376,6 +297,10 @@ class testing {
   private $html;
 
   public function __construct($p, $html) {
+    if(!is_dir($p->t_dir)) {
+      fprintf(STDERR, "Zadany parametr directory neni slozka.\n");
+      exit(11);
+    }
     $this->files = extract_files([],$p->t_dir, $p->rec);
     $this->files_n = sizeof($this->files);
     $this->files_i = 0;
@@ -384,8 +309,72 @@ class testing {
   }
 
   private function test_one_as_ponly($file) {
-    //TODO
-    print("Parse only: ".$file."\n");
+    $clean_out = false;
+    $clean_rc = false;
+    if(!file_exists($file.".out")) {
+      $clean_out = true;
+      shell_exec("touch ipp_testing_temp.out");
+      $out = "ipp_testing_temp.out";
+    }
+    else {
+      $out = $file.".out";
+    }
+    if(!file_exists($file.".rc")) {
+      $clean_rc = true;
+      shell_exec("echo \"0\" >ipp_testing_temp.rc");
+      $rc = "ipp_testing_temp.rc";
+    }
+    else {
+      $rc = $file.".rc";
+    }
+    //konec pripravy souboru
+
+    //vytvori pouze filename bez cesty pro ucely vypisu
+    $file_name = explode('/', $file);
+    $file_name = end($file_name);
+    $expected_rc = shell_exec("cat ".$rc);
+
+    //spusteni programu a porovnávání
+    shell_exec("php7.4 ".$this->p->p_dir." <".$file.".src >ipp_testing.out 2>/dev/null; echo $? >ipp_testing.rc");
+    $diff_rc = shell_exec("diff -w ipp_testing.rc ".$rc." >/dev/null; echo $?");
+
+    if($diff_rc == 2) {
+      fprint(STDERR, "Interni chyba diff u testu ".$file);
+      goto clean_up;
+    }
+
+    $got_rc = shell_exec("cat ipp_testing.rc");
+    if($diff_rc == 1) {
+      $err_log = "Očekáván návratový kód: <code>".$expected_rc.
+      "</code> Skutečný návratový kód: <code>".$got_rc."</code>";
+      $this->html->add_result($file_name, false, true, false, $err_log);
+      goto clean_up;
+    }
+
+    //porovnani out
+    //diff na rc probehl v poradku
+    $options = preg_replace("/([^\/])*$/", "options", $this->p->jexamxml);
+
+    $diff_rc = shell_exec("java -jar ".$this->p->jexamxml." ipp_testing.out ".$out.
+    " ipp_testing_diffs.xml /D ".$options." >/dev/null; echo $?");
+
+    if($diff_rc == 1) {
+      $err_log = shell_exec("cat ipp_testing_diffs.xml");
+      $this->html->add_result($file_name, true, false, false, $err_log);
+    }
+    else {
+      //diff na out probehl v poradku
+      $this->html->add_result($file_name, true, false, true, NULL);
+    }
+
+    //vycisteni souboru
+    clean_up:
+    if(file_exists("ipp_testing_diffs.xml")) shell_exec("rm ipp_testing_diffs.xml");
+    if(file_exists("ipp_testing_err_log")) shell_exec("rm ipp_testing_err_log");
+    if(file_exists("ipp_testing.out")) shell_exec("rm ipp_testing.out");
+    if(file_exists("ipp_testing.rc")) shell_exec("rm ipp_testing.rc");
+    if($clean_out) shell_exec("rm ipp_testing_temp.out");
+    if($clean_rc) shell_exec("rm ipp_testing_temp.rc");
   }
 
   private function test_one_as_ionly($file) {
@@ -510,7 +499,7 @@ class testing {
     $expected_rc = shell_exec("cat ".$rc);
 
     //spusteni programu a porovnávání
-    shell_exec("php7.4 parse.php <".$file.".src >ipp_testing_mid.out; echo $? >ipp_testing_mid.rc");
+    shell_exec("php7.4 ".$this->p->p_dir." <".$file.".src >ipp_testing_mid.out; echo $? >ipp_testing_mid.rc");
     $diff_rc = shell_exec("diff -w ipp_testing_mid.rc ".$rc." >/dev/null; echo $?");
 
     if($diff_rc == 2) {
@@ -547,7 +536,7 @@ class testing {
     if($diff_rc == 1) {
       $err_log = "Očekáván návratový kód: <code>".$expected_rc.
       "</code> Skutečný návratový kód: <code>".$got_rc."</code>";
-      if(!empty($int_err)) $err_log .= "Chybové hlášení z interpretu: <code>".
+      if(!empty($int_err)) $err_log .= "<br/>Chybové hlášení z interpretu: <br/><code>".
         $int_err."</code>";
       if($got_rc == 31) {
         $mid_out = shell_exec("cat ipp_testing_mid.out");
@@ -570,9 +559,11 @@ class testing {
 
       if($diff_rc == 1) {
         $expected_out = shell_exec("cat ".$out);
+        $expected_out = preg_replace("/\\n/","<br/>",$expected_out);
         $got_out = shell_exec("cat ipp_testing.out");
-        $err_log = "Očekáván výstup: <code>".$expected_out.
-        "</code> Skutečný výstup: <code>".$got_out."</code>";
+        $got_out = preg_replace("/\\n/","<br/>",$got_out);
+        $err_log = "Očekáván výstup: <br/><code>".$expected_out.
+        "</code><br/>Skutečný výstup:<br/><code>".$got_out."</code>";
         $this->html->add_result($file_name, true, false, false, $err_log);
       }
       else {
@@ -594,20 +585,12 @@ class testing {
   }
 
   public function test() {
-    //TODO delete this bit
-    $total = sizeof($this->files);
-    $count = 0;
-
     if(empty($this->files)) return;
     while($this->files_i < $this->files_n) {
       if($this->p->i_only) $this->test_one_as_ionly($this->files[$this->files_i]);
       else if($this->p->p_only) $this->test_one_as_ponly($this->files[$this->files_i]);
       else $this->test_one_as_both($this->files[$this->files_i]);
       $this->files_i++;
-
-      //TODO delete after
-      $count++;
-      fprintf(STDERR, "Testing ".$count."/".$total."\r");
     }
   }
 }
@@ -623,24 +606,5 @@ $testing = new testing($p, $html);
 $testing->test();
 
 $html->finish();
-
-/*
-$html->add_result("testik", true, false, true, "nothing");
-$html->add_result("read_simple", true, false, false, NULL);
-$html->add_result("write_simple", true, true, false, "nothing2");
-$html->add_result("hey", true, true, false, "Hello this is a message, cool right? Return code was 1, but expected 0. That sucks, rigth?");
-$html->add_result("testik", true, false, true, "nothing");
-$html->add_result("read_simple", true, false, false, NULL);
-$html->add_result("write_simple", true, true, false, "nothing2");
-$html->add_result("testik", true, false, true, "nothing");
-$html->add_result("read_simple",true, false, false, NULL);
-$html->add_result("write_simple", true, true, false, "nothing2");
-$html->add_result("testik", true, false, true, "nothing");
-$html->add_result("read_simple", true, false, false, NULL);
-$html->add_result("write_simple", true, true, false, "nothing2");
-$html->add_result("testik", true, false, true, "nothing");
-$html->add_result("read_simple", true, false, false, NULL);
-$html->add_result("write_simple", true, true, false, "nothing2");
-*/
 
 ?>
