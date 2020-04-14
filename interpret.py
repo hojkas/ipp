@@ -117,7 +117,7 @@ def exit_msg_type_arg(name, order, expected, got_type, got_value):
     exit(32)
 
 
-def my_out_print(s):
+def fix_escapes_in_string(s):
     res = ''
     skip = 0
     for i in range(0, len(s)):
@@ -129,8 +129,11 @@ def my_out_print(s):
             res += s[i]
         else:
             skip -= 1
+    return res
 
-    print(res, sep='', end='')
+
+def my_out_print(s):
+    print(s, sep='', end='')
 
 
 class Variable:
@@ -171,7 +174,7 @@ class Argument:
                 exit(32)
         elif a_type == 'nil':
             check_nil(value)
-            self.value = None
+            self.value = 'nil'
         elif a_type == 'type':
             check_type(value)
             self.value = value
@@ -180,7 +183,7 @@ class Argument:
             self.value = value
         else:
             check_string(value)
-            self.value = value
+            self.value = fix_escapes_in_string(value)
 
 
 class Instruction:
@@ -396,7 +399,7 @@ class ProcessSource:
         self.ins_iter = iter(self.ins)
         self.ins_done = 0
         for label in self.labels_to_check:
-            if not self.labels.get(label):
+            if self.labels.get(label) is None:
                 print('Navesti "', label, '" co ma byt volano neexistuje.', sep='', file=sys.stderr)
                 exit(52)
 
@@ -623,6 +626,7 @@ class ProcessSource:
         # CALL <label>
         if self.pre_run:
             self.check_cur_args('<label>')
+            self.labels_to_check.append(self.cur_ins.arg1.value)
             return
 
         self.call_stack.append(self.ins_index)
@@ -901,7 +905,7 @@ class ProcessSource:
             elif op1_value == 'string':
                 self.store_var_type_value_from_arg(self.cur_ins.arg1, 'string', read)
             elif op1_value == 'bool':
-                if read.lower == 'true':
+                if read.lower() == 'true':
                     read = 'true'
                 else:
                     read = 'false'
@@ -909,11 +913,8 @@ class ProcessSource:
             else:
                 print('Neplatny typ pro konverzi skrz READ.', file=sys.stderr)
                 exit(57)
-        except EOFError:
+        except (EOFError, ValueError):
             self.store_var_type_value_from_arg(self.cur_ins.arg1, 'nil', 'nil')
-        except ValueError:
-            print('Spatny typ nacteneho retezce pro konverzi.', file=sys.stderr)
-            exit(57)
 
     def write_func(self):
         # WRITE <symb>
@@ -988,6 +989,9 @@ class ProcessSource:
         op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
         op2_type, op2_value = self.get_symb_type_value_from_arg(self.cur_ins.arg3)
 
+        if not op2_value:
+            print('Prazdny char na vlozeni v instrukci SETCHAR.', file=sys.stderr)
+            exit(58)
         if var_type != 'string' or op1_type != 'int' or op2_type != 'string':
             print('Operandy instrukce GETCHAR (order: ', self.cur_ins.order, ') nejsou typu string/int.', sep='',
                   file=sys.stderr)
@@ -1062,7 +1066,7 @@ class ProcessSource:
         # LABEL <label>
         if self.pre_run:
             self.check_cur_args('<label>')
-            if self.labels.get(self.cur_ins.arg1.value):
+            if not self.labels.get(self.cur_ins.arg1.value) is None:
                 print('Redefinice navesti "', self.cur_ins.arg1.value, '".', sep='', file=sys.stderr)
                 exit(52)
             self.labels.update({self.cur_ins.arg1.value: self.ins_index})
@@ -1087,7 +1091,7 @@ class ProcessSource:
         if self.pre_run:
             self.check_cur_args('<label>', '<symb>', '<symb>')
             # TODO this should be but is causing more problems than is usefull
-            # self.labels_to_check.append(self.cur_ins.arg1.value)
+            self.labels_to_check.append(self.cur_ins.arg1.value)
             return
 
         op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)
@@ -1115,7 +1119,7 @@ class ProcessSource:
         if self.pre_run:
             self.check_cur_args('<label>', '<symb>', '<symb>')
             # TODO this should be here
-            # self.labels_to_check.append(self.cur_ins.arg1.value)
+            self.labels_to_check.append(self.cur_ins.arg1.value)
             return
 
         op1_type, op1_value = self.get_symb_type_value_from_arg(self.cur_ins.arg2)

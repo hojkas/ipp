@@ -173,7 +173,7 @@ li {
     $this->center_result_header(2, "Testování probíhá ze složky ".$param->t_dir.", ".$ne_rec."rekurzivně.");
     if($param->i_only) $this->center_result_header(2, "Interpret.py only.");
     else if($param->p_only) $this->center_result_header(2, "Parse.php only.");
-    else $this->center_result_header(2, "Parse.php i intepret.py.");
+    else $this->center_result_header(2, "Parse.php i interpret.py.");
   }
 
   public function add_result($name, $rc_good, $only_rc, $out_good, $error_log) {
