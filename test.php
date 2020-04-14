@@ -225,10 +225,10 @@ class params {
   public $t_dir, $p_dir, $i_dir, $jexamxml, $rec, $p_only, $i_only;
 
   public function __construct() {
-    $this->t_dir = '';
+    $this->t_dir = './';
     $this->p_dir = 'parse.php';
     $this->i_dir = 'interpret.py';
-    $jexamxml = '/pub/courses/ipp/jexamxml/jexamxml.jar';
+    $this->jexamxml = '/pub/courses/ipp/jexamxml/jexamxml.jar';
 
     $this->rec = false;
     $this->p_only = false;
@@ -408,7 +408,7 @@ class testing {
     //konec pripravy souboru
 
     //spusteni programu a porovnávání
-    shell_exec("python3 ".$this->p->i_dir." --source=".$file.".src --input=".
+    shell_exec("python3.8 ".$this->p->i_dir." --source=".$file.".src --input=".
     $in." >ipp_testing.out 2>ipp_testing_err_log; echo $? >ipp_testing.rc");
     $diff_rc = shell_exec("diff -w ipp_testing.rc ".$rc." >/dev/null; echo $?");
 
@@ -424,8 +424,10 @@ class testing {
     $got_rc = shell_exec("cat ipp_testing.rc");
     if($diff_rc == 1) {
       $expected_rc = shell_exec("cat ".$rc);
+      $int_err = shell_exec("cat ipp_testing_err_log");
       $err_log = "Očekáván návratový kód: <code>".$expected_rc.
-      "</code> Skutečný návratový kód: <code>".$got_rc."</code>";
+      "</code> Skutečný návratový kód: <code>".$got_rc."</code><br/>Chybove hlaseni ".
+      "z interpretu: <br/><code>".$int_err."</code>";
       $this->html->add_result($file_name, false, true, false, $err_log);
     }
     elseif($got_rc != 0) {
@@ -522,7 +524,7 @@ class testing {
     }
 
     //testovani interpret.py, nemusi se sem dostat pokud uz parse vratil nenulovy rc
-    shell_exec("python3 ".$this->p->i_dir." --source=ipp_testing_mid.out --input=".
+    shell_exec("python3.8 ".$this->p->i_dir." --source=ipp_testing_mid.out --input=".
     $in." >ipp_testing.out 2>ipp_testing_err_log; echo $? >ipp_testing.rc");
     $diff_rc = shell_exec("diff -w ipp_testing.rc ".$rc." >/dev/null; echo $?");
     $int_err = shell_exec("cat ipp_testing_err_log");

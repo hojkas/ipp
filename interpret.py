@@ -282,6 +282,7 @@ def get_instruction(elem):
     # kontrola atributu instrukce
     if 'opcode' not in elem.attrib or 'order' not in elem.attrib or len(elem.attrib) != 2:
         print('U instrukce nejsou vhodne atributy (chybi opcode, order ci existuje nejaky extra.', file=sys.stderr)
+        exit(32)
 
     # kontrola existujiciho opcode
     possible = ['MOVE', 'CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'DEFVAR', 'CALL', 'RETURN', 'PUSHS', 'POPS',
@@ -298,6 +299,12 @@ def get_instruction(elem):
             break
     if not valid:
         print('Neznama instrukce"', opcode, '".', sep='', file=sys.stderr)
+        exit(32)
+
+    try:
+        int(elem.attrib['order'])
+    except ValueError:
+        print('Order neni cislo.', file=sys.stderr)
         exit(32)
 
     # samotna tvorba objektu instrukce
