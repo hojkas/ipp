@@ -6,9 +6,11 @@ Login: xstrna14
 
 ## interpret.py
 
-Základem interpretace je třída `ProcessSource`. Každá instrukce, argument instrukce, rámec a proměnná jsou implementovány jako objekty. I když je většina zajímavého kódu uvnitř třídních funkcí, je zde i pár užitečných pomocných vně, například na zpracování argumentů programu, kontrolu formátu typu atributů nebo funkce na zpracování instrukce z vstupního xml do objektu instrukce. 
+Interpretace stojí na třídě `ProcessSource`. Každá instrukce, argument instrukce, rámec a proměnná jsou implementovány jako objekty. I když je většina zajímavého kódu uvnitř třídních funkcí, je zde i pár užitečných pomocných vně, například na zpracování argumentů programu, kontrolu formátu typu atributů nebo funkce na zpracování instrukce z vstupního xml do objektu instrukce. 
 
 Základní myšlenkou je dvojí procházení instrukcí: první cyklus krok po kroku kvůli ověření návěští a uložení pozic o nich, druhé skutečné vykonávání programu.
+
+Z hlavního těla programu je `ProcessSource` inicializováno, zavolána jeho funkce na pre-run a poté v cyklu volána funkce na zpracování další instrukce dokud nevrátí false.
 
 ### `ProcessSource` - inicializace
 
@@ -20,6 +22,31 @@ Funkce `do_pre_run` projde seznam instrukcí a u každé ověří, zda jsou jej�
 
 ### `ProcessSource` - zpracování další instrukce
 
-Pomocí `opcode` se spustí funkce pro danou instrukci a vykoná se vše potřebné. V hojném množství jsou využívány pomocné funkce, např. pro načtení hodnoty kde je povolen argument typu `symb` (kde může jít o proměnnou) nebo uložení hodnoty i s typem do proměnné. Šlo-li o instrukci skoku, ukládá se do indexu instrukcí nová hodnota.
+Pomocí `opcode` se spustí funkce pro danou instrukci a vykoná se vše potřebné. V hojném množství jsou využívány pomocné funkce, např. pro načtení hodnoty kde je povolen argument typu `symb` (kde může jít o proměnnou) nebo uložení hodnoty i s typem do proměnné. Šlo-li o instrukci se skokem, ukládá se do indexu instrukcí nová hodnota.
+
+Za zmínku stojí, že každá funkce na zpracování instrukce má dvě části, první se spustí při pre-run, druhá při vlastní interpretaci. Z hlediska programu samotného není důvod mít je u sebe, ale jejich umístěním tímto stylem bylo snazší mít přehled o umístění potřebných kontrol argumentů funkce.
 
 ## test.php
+
+Test zpracuje argumenty a použije dané zdroje na otestování a vytvoření přehledné html stránky. Krom nich existuje ještě pomocná funkce na extrahování jmen souborů i s cestou do připraveného pole, které získá procházením zadaného adresáře.
+
+Třída `params` zpracuje a uloží parametry skriptu tak, aby byly snadno dostupné a použitelné přímo v kódu. K tomu provede potřebná ověření jejich správnosti.
+
+`html` se stará o vytváření výsledného html souboru. Již obsahuje kostru, do níž pouze vloží výsledky testů na základě opakovaného volání funkce `add_result` s parametry obsahujícími informace o správnosti testu.
+
+O testování samotné se stará třída `testing`. Nad extrahovanými soubory opakovaně volá jednu z funkcí na provedení testu (podle toho, zda jde o testování pouze interpretu, parseru, nebo obou). Všechny tři funkce na začátku zjistí, zda-li existují soubory které potřebují (.out, .rc, krom parse-only i .in) a pokud ne, vytvoří si je s potřebnými hodnotami. Na konci vyčistí všechny co si vytvořily, včetně souborů pro mezivýstupy k porovnání.
+
+### parse-only
+
+Nechá zadaný soubor s parse skriptem zpracovat .src kód. Je-li návratový kód 0 a měl-li být této hodnoty, porovná navíc výstup s refernčním pomocí nástroje `JExamXML`. Ve všech případech je volána funkce `add_result` s informacemi o úspěšnosti porovnání a případných nesrovnalostech.
+
+### int-only
+
+Stejně jako v předchozím případě spustí program s daným vstupem a zkontroluje návratový kód. Narozdíl od parse-only na případné porovnání očekávaného výstupu se skutečným využívá nástroj `diff`.
+
+### parse i interpret
+
+Neprve je použit na zpracování skript parse a výsledek uložen do dočasného souboru. Byl-li návratový kód 0, je spuštěn interpret s tímto vstupem a opět probíhá porovnání návratového kódu a výsledku (pomocí `diff`).
+### třída testing
+
+### třída html
