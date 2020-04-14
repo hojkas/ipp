@@ -1208,38 +1208,9 @@ class ProcessSource:
         return True
 
 
-# temp funkce na vypisy
-# TODO odstranit
-def write_arg(arg):
-    if arg.value == '':
-        print(arg.type, '-', 'empty')
-    else:
-        print(arg.type, '-', arg.value)
-
-
-def write_ins(ins):
-    print('Instruction: ', ins.opcode, ' (', ins.order, ')', sep='')
-    if ins.arg1:
-        write_arg(ins.arg1)
-    if ins.arg2:
-        write_arg(ins.arg2)
-    if ins.arg3:
-        write_arg(ins.arg3)
-
-
-def write_all_ins(inss):
-    print('--- INS BEGIN ---')
-    for ins in inss:
-        write_ins(ins)
-    print('--- INS END ---')
-
-
 # MAIN BODY
 src = ProcessSource()
 src.do_pre_run()
-# write_all_ins(src.ins)
 
 while src.do_next_ins():
-    # TODO delete
-    # print('Did:', src.cur_ins.opcode)
     pass
