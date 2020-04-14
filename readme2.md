@@ -6,15 +6,15 @@ Login: xstrna14
 
 ## interpret.py
 
-Interpretace stojí na třídě `ProcessSource`. Každá instrukce, argument instrukce, rámec a proměnná jsou implementovány jako objekty. I když je většina zajímavého kódu uvnitř třídních funkcí, je zde i pár užitečných pomocných vně, například na zpracování argumentů programu, kontrolu formátu typu atributů nebo funkce na zpracování instrukce z vstupního xml do objektu instrukce. 
+Pro interpretaci je zásadní třída `ProcessSource`. Každá instrukce, argument instrukce, rámec a proměnná jsou implementovány jako objekty. I když je většina zajímavého kódu uvnitř třídních funkcí, je zde i pár užitečných pomocných vně, například na zpracování argumentů programu, kontrolu formátu typu atributů nebo funkce na zpracování instrukce z vstupního xml do objektu `Instruction`. 
 
-Základní myšlenkou je dvojí procházení instrukcí: první cyklus krok po kroku kvůli ověření návěští a uložení pozic o nich, druhé skutečné vykonávání programu.
+Základní myšlenkou je projít instrukce dvakrát: první cyklus ověří existenci všech volaných návěští a uloží jejich pozice, druhý již opravdu vykonává program (včetně případných skoků).
 
 Z hlavního těla programu je `ProcessSource` inicializováno, zavolána jeho funkce na pre-run a poté v cyklu volána funkce na zpracování další instrukce dokud nevrátí false.
 
 ### `ProcessSource` - inicializace
 
-Při vytváření tohoto objektu se pomocí `xml.etree.ElementTree` nahraje vstupní XML, ověří zda jeho skladba odpovídá požadavkům a pro každý element instruction volá funkci na zpracování do objektu instrukce. Tyto objekty poté naváže do seznamu, kterým bude možné procházet pomocí indexu. Tento seznam seřadí podle atributu order a zkontroluje, zda-li neexistuje duplicitní nebo menší než 1. Vytváří se mnoho objektů, za zmínku stojí např. globální rámec a prázdný seznam na lokální rámce, zásobníky na volání a proměnné nebo slovník návěští.
+Při vytváření tohoto objektu skript pomocí `xml.etree.ElementTree` nahraje vstupní XML, ověří, zda jeho skladba odpovídá požadavkům, a pro každý element instruction volá funkci na zpracování do objektu instrukce. Tyto objekty poté naváže do seznamu, kterým bude možné procházet pomocí indexu. Tento seznam seřadí podle atributu order a zkontroluje, zda-li neexistuje duplicitní nebo menší než 1. Vytváří se mnoho objektů, za zmínku stojí např. globální rámec a prázdný seznam na lokální rámce, zásobníky na volání a proměnné nebo slovník návěští.
 
 ### `ProcessSource` - pre_run
 
@@ -22,31 +22,28 @@ Funkce `do_pre_run` projde seznam instrukcí a u každé ověří, zda jsou jej�
 
 ### `ProcessSource` - zpracování další instrukce
 
-Pomocí `opcode` se spustí funkce pro danou instrukci a vykoná se vše potřebné. V hojném množství jsou využívány pomocné funkce, např. pro načtení hodnoty kde je povolen argument typu `symb` (kde může jít o proměnnou) nebo uložení hodnoty i s typem do proměnné. Šlo-li o instrukci se skokem, ukládá se do indexu instrukcí nová hodnota.
+Pomocí `opcode` se spustí funkce pro danou instrukci a vykoná se vše potřebné. V hojném množství jsou využívány pomocné funkce, např. pro načtení hodnoty z argumentu povolujícím typ `symb` (kde může jít o proměnnou či přímo hodnotu) nebo uložení hodnoty i s typem do proměnné. Šlo-li o instrukci se skokem, ukládá se do indexu instrukcí nová hodnota.
 
-Za zmínku stojí, že každá funkce na zpracování instrukce má dvě části, první se spustí při pre-run, druhá při vlastní interpretaci. Z hlediska programu samotného není důvod mít je u sebe, ale jejich umístěním tímto stylem bylo snazší mít přehled o umístění potřebných kontrol argumentů funkce.
+Za zmínku stojí, že každá funkce na zpracování instrukce má dvě části, první se spustí při pre-run, druhá při vlastní interpretaci. Z hlediska programu samotného není důvod mít je u sebe, ale díky tomuto uspořádání bylo snazší mít přehled o umístění potřebných kontrol argumentů funkce.
 
 ## test.php
 
-Test zpracuje argumenty a použije dané zdroje na otestování a vytvoření přehledné html stránky. Krom nich existuje ještě pomocná funkce na extrahování jmen souborů i s cestou do připraveného pole, které získá procházením zadaného adresáře.
+Test zpracuje argumenty a použije dané zdroje na otestování a vytvoření přehledné html stránky. Většina funkcionality je řešena v třech základních třídách. Krom nich existuje ještě pomocná funkce na extrahování jmen souborů i s cestou do připraveného pole, které získá procházením zadaného adresáře.
 
 Třída `params` zpracuje a uloží parametry skriptu tak, aby byly snadno dostupné a použitelné přímo v kódu. K tomu provede potřebná ověření jejich správnosti.
 
 `html` se stará o vytváření výsledného html souboru. Již obsahuje kostru, do níž pouze vloží výsledky testů na základě opakovaného volání funkce `add_result` s parametry obsahujícími informace o správnosti testu.
 
-O testování samotné se stará třída `testing`. Nad extrahovanými soubory opakovaně volá jednu z funkcí na provedení testu (podle toho, zda jde o testování pouze interpretu, parseru, nebo obou). Všechny tři funkce na začátku zjistí, zda-li existují soubory které potřebují (.out, .rc, krom parse-only i .in) a pokud ne, vytvoří si je s potřebnými hodnotami. Na konci vyčistí všechny co si vytvořily, včetně souborů pro mezivýstupy k porovnání.
+O testování samotné se stará třída `testing`. Nad extrahovanými soubory opakovaně volá jednu z funkcí na provedení testu (podle toho, zda jde o testování pouze interpretu, parseru, nebo obou). Všechny tři funkce na začátku zjistí, zda-li existují soubory které potřebují (.out, .rc, krom parse-only i .in) a pokud ne, vytvoří si je s potřebnými hodnotami. Na konci vyčistí všechny soubory, co si vytvořily, včetně souborů pro mezivýstupy k porovnání.
 
-### parse-only
+### Parse-only
 
-Nechá zadaný soubor s parse skriptem zpracovat .src kód. Je-li návratový kód 0 a měl-li být této hodnoty, porovná navíc výstup s refernčním pomocí nástroje `JExamXML`. Ve všech případech je volána funkce `add_result` s informacemi o úspěšnosti porovnání a případných nesrovnalostech.
+Nechá zadaný soubor s parse skriptem zpracovat .src soubor. Je-li návratový kód 0 a měl-li být této hodnoty, porovná navíc výstup s referenčním pomocí nástroje `JExamXML`. Bez ohledu na výsledek je volána funkce `add_result` s informacemi o úspěšnosti porovnání a případných nesrovnalostech.
 
-### int-only
+### Int-only
 
 Stejně jako v předchozím případě spustí program s daným vstupem a zkontroluje návratový kód. Narozdíl od parse-only na případné porovnání očekávaného výstupu se skutečným využívá nástroj `diff`.
 
-### parse i interpret
+### Parse i interpret
 
 Neprve je použit na zpracování skript parse a výsledek uložen do dočasného souboru. Byl-li návratový kód 0, je spuštěn interpret s tímto vstupem a opět probíhá porovnání návratového kódu a výsledku (pomocí `diff`).
-### třída testing
-
-### třída html
